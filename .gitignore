@@ -1,5 +1,6 @@
 .unprocessed/
 /funniest.txt
+/input.txt
 /output.txt
 /profile
 /profiler.py

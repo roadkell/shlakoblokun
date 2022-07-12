@@ -5,7 +5,7 @@ Blend words from a vocabulary.
 Each word is checked for overlapping characters against every other word.
 It is considered a match when at least 2 chars are overlapping.
 Example: "revenge" and "vengeance" have 5 overlapping chars,
-so "revengeance" will be generated from this pair.
+so "reVENGEance" will be generated from this pair.
 Each word must have at least 1 non-overlapping char at the start/end.
 
 Uses Russian YARN database, by default.
@@ -23,6 +23,7 @@ def main() -> int:
 	print(' └//────────────////────────────//┘')
 
 	# Parse command line arguments
+	# TODO: implement -r,-n,-d arguments
 	# TODO: argumentize min non-overlapping chars, min/max word len...
 	argparser = argparse.ArgumentParser()
 	argparser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default='ru/yarn.txt')
@@ -30,9 +31,9 @@ def main() -> int:
 	argparser.add_argument('-r', '--random', action='store_true',
 	                       help='generate random blends, instead of going sequentially through the vocabulary')
 	argparser.add_argument('-n', '--number', type=int,
-	                       help='limit the number of generated word blends')
+	                       help='number of word blends to generate (default: run infinitely)')
 	argparser.add_argument('-d', '--depth', type=int, default=2,
-	                       help='minimum depth (number of overlapping characters) of blending (default: %(default)s)')
+	                       help='minimum depth of blending (default: %(default)s)')
 	argparser.add_argument('-u', '--uppercase', action='store_true',
 	                       help='uppercase overlapping characters in the output')
 	argparser.add_argument('-c', '--capwords', action='store_true',
@@ -48,12 +49,13 @@ def main() -> int:
 	with args.infile as file:
 		for w in file:
 			# Strip whitespace characters from both ends.
-			# This is required, as reading a textfile auto-appends '\n'.
+			# This is always required, as reading a textfile auto-appends '\n'.
 			w = w.strip(string.whitespace)
 			# Skip comment lines, words with non-printables, words with <2 chars,
-			# capitalized words and multiword strings (last ones are opinionated)
+			# capitalized words (arg-dependent) and multiword strings (arg-dependent)
 			if (w[0] != '#') and (len(w) > 2) and w.isprintable() \
-			and w.islower() and (' ' not in w):
+			and (args.capwords or w.islower()) \
+			and (args.multiwords or (' ' not in w)):
 				wlist.append(w)
 
 	# Search for overlapping characters at the beginning & end of all words.
@@ -76,13 +78,17 @@ def main() -> int:
 					for i in range(1, len(w1)-1):
 						if w2.startswith(w1[i:], 0, len(w2)-1):
 							# Match! Take non-overlapping i characters from w1,
-							# add UPPERCASED overlapping chars,
+							# add UPPERCASED (this is arg-dependent) overlapping chars,
 							# then add remaining chars from w2
-							w3 = ''.join((w1[:i], w1[i:].upper(), w2[len(w1[i:]):]))
+							if args.uppercase:
+								w3 = ''.join((w1[:i], w1[i:].upper(), w2[len(w1[i:]):]))
+							else:
+								w3 = ''.join((w1, w2[len(w1[i:]):]))
 							if (w3 not in wlist) and (w3 not in wdict):
 								wdict[w3] = len(w1)-i
-								# Write blend word into a plain text file
+								# Write blended word into a plain text file
 								# together with overlap depth (\n is auto-appended)
+								# TODO: argumentize output string format
 								print(wdict[w3], w3, file=file)
 							# After a match, proceed to next pair
 							break
