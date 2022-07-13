@@ -37,7 +37,10 @@ def main():
 	print('Starting search for overlapping substrings in the words')
 	print('(this may take a few hours, depending on vocabulary size)...')
 
-	write_outfile(args.outfile, wlist, args.number, args.uppercase)
+	if args.random:
+		write_outfile_rnd(args.outfile, wlist, args.number, args.uppercase)
+	else:
+		write_outfile(args.outfile, wlist, args.number, args.uppercase)
 
 	print('Done.')
 
@@ -50,7 +53,7 @@ def parse_args() -> argparse.Namespace:
 	"""
 	Parse command line arguments
 	"""
-	# TODO: implement -r,-d arguments
+	# TODO: implement -d argument
 	# TODO: argumentize min non-overlapping chars, min/max word len...
 	parser = argparse.ArgumentParser()
 	parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default='ru/yarn.txt')
@@ -128,12 +131,12 @@ def write_outfile(outfile, wlist: list, maxblends: int, uppercase: bool):
 			else:
 				break
 	tqdm.write('Blends generated: ' + str(blend_ctr))
-	return 0
+	return outfile
 
 # ============================================================================ #
 
 
-def write_outfile_rnd(outfile, wlist: list, uppercase: bool):
+def write_outfile_rnd(outfile, wlist: list, maxblends: int, uppercase: bool):
 	"""
 	Search for overlapping characters at the beginning & end of all words,
 	blend matching pairs, and write results into a text file.
@@ -143,23 +146,20 @@ def write_outfile_rnd(outfile, wlist: list, uppercase: bool):
 	wdict = dict()
 	blend_ctr = 0
 	with outfile:
-		w1, w2 = random.choice(wlist)
-		if w1 != w2:
-			# There must be non-overlapping characters in both words
-			for i in range(1, len(w1) - 1):
-				if w2.startswith(w1[i:], 0, len(w2) - 1):
-					# Match! But we'll still need to check against wlist/wdict
-					w3 = blend_pair(w1, w2, i, uppercase)
-					if (w3 not in wlist) and (w3 not in wdict):
-						# Write blended word into a plain text file
-						# together with overlap depth (\n is auto-appended)
-						# TODO: argumentize output string format
-						wdict[w3] = len(w1) - i
-						print(wdict[w3], w3, file=outfile)
-						blend_ctr += 1
-					# After a match, proceed to next pair
-					break
-	return 0
+		# TODO: print number of generated blends in real-time
+		# (as a progress bar, if limit was set in the options)
+		while (maxblends <= 0) or (blend_ctr < maxblends):
+			w1 = random.choice(wlist)
+			w2 = random.choice(wlist)
+			(w3, i) = check_pair(w1, w2, uppercase)
+			if len(w3) and (w3 not in wlist) and (w3 not in wdict):
+				# Write blended word into a plain text file
+				# together with overlap depth (\n is auto-appended)
+				# TODO: argumentize output string format
+				wdict[w3] = len(w1) - i
+				print(wdict[w3], w3, file=outfile)
+				blend_ctr += 1
+	return outfile
 
 # ============================================================================ #
 
