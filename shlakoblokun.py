@@ -37,7 +37,7 @@ def main():
 	print('Starting search for overlapping substrings in the words')
 	print('(this may take a few hours, depending on vocabulary size)...')
 
-	write_outfile(args.outfile, wlist, args.uppercase)
+	write_outfile(args.outfile, wlist, args.number, args.uppercase)
 
 	print('Done.')
 
@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
 	"""
 	Parse command line arguments
 	"""
-	# TODO: implement -r,-n,-d arguments
+	# TODO: implement -r,-d arguments
 	# TODO: argumentize min non-overlapping chars, min/max word len...
 	parser = argparse.ArgumentParser()
 	parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default='ru/yarn.txt')
@@ -96,7 +96,7 @@ def read_infile(infile, incl_capwords: bool, incl_multiwords: bool) -> list:
 # ============================================================================ #
 
 
-def write_outfile(outfile, wlist: list, uppercase: bool):
+def write_outfile(outfile, wlist: list, maxblends: int, uppercase: bool):
 	"""
 	Search for overlapping characters at the beginning & end of all words,
 	blend matching pairs, and write results into a text file (dynamically).
@@ -107,21 +107,27 @@ def write_outfile(outfile, wlist: list, uppercase: bool):
 	blend_ctr = 0
 	with outfile:
 		# Show progress bars and ETAs
-		# TODO: print number of generated blends
+		# TODO: print number of generated blends in real-time
 		# (as a progress bar, if limit was set in the options)
 		for w1 in tqdm(wlist, smoothing=0.01, dynamic_ncols=True,
 		               desc='Total words processed'):
-			for w2 in tqdm(wlist, leave=False, dynamic_ncols=True,
-			               desc='Current word vs. whole vocabulary'):
-				(w3, i) = check_pair(w1, w2, uppercase)
-				if len(w3) and (w3 not in wlist) and (w3 not in wdict):
-					# Write blended word into a plain text file
-					# together with overlap depth (\n is auto-appended)
-					# TODO: argumentize output string format
-					wdict[w3] = len(w1) - i
-					print(wdict[w3], w3, file=outfile)
-					blend_ctr += 1
-					# tqdm.write('Blends generated: '+str(blend_ctr), end='\r')
+			if (maxblends <= 0) or (blend_ctr < maxblends):
+				for w2 in tqdm(wlist, leave=False, dynamic_ncols=True,
+				               desc='Current word vs. whole vocabulary'):
+					if (maxblends <= 0) or (blend_ctr < maxblends):
+						(w3, i) = check_pair(w1, w2, uppercase)
+						if len(w3) and (w3 not in wlist) and (w3 not in wdict):
+							# Write blended word into a plain text file
+							# together with overlap depth (\n is auto-appended)
+							# TODO: argumentize output string format
+							wdict[w3] = len(w1) - i
+							print(wdict[w3], w3, file=outfile)
+							blend_ctr += 1
+					else:
+						break
+			else:
+				break
+	tqdm.write('Blends generated: ' + str(blend_ctr))
 	return 0
 
 # ============================================================================ #
