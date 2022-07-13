@@ -37,10 +37,7 @@ def main():
 	print('Starting search for overlapping substrings in the words')
 	print('(this may take a few hours, depending on vocabulary size)...')
 
-	if args.random:
-		write_outfile_rnd(args.outfile, wlist, args.number, args.uppercase)
-	else:
-		write_outfile(args.outfile, wlist, args.number, args.uppercase)
+	write_outfile(args.outfile, wlist, args.random, args.number, args.depth, args.uppercase)
 
 	print('Done.')
 
@@ -61,7 +58,7 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('-r', '--random', action='store_true',
 	                    help='generate random blends, instead of going sequentially through the vocabulary')
 	parser.add_argument('-n', '--number', type=int, default=0,
-	                    help='number of word blends to generate (default: run indefinitely)')
+	                    help='number of word blends to generate (default: unlimited)')
 	parser.add_argument('-d', '--depth', type=int, default=2,
 	                    help='minimum depth of blending (default: %(default)s)')
 	parser.add_argument('-u', '--uppercase', action='store_true',
@@ -99,7 +96,12 @@ def read_infile(infile, incl_capwords: bool, incl_multiwords: bool) -> list:
 # ============================================================================ #
 
 
-def write_outfile(outfile, wlist: list, maxblends: int, uppercase: bool):
+def write_outfile(outfile,
+                  wlist: list,
+                  randomblends: bool,
+                  maxblends: int,
+                  mindepth: int,
+                  uppercase: bool):
 	"""
 	Search for overlapping characters at the beginning & end of all words,
 	blend matching pairs, and write results into a text file (dynamically).
@@ -109,92 +111,72 @@ def write_outfile(outfile, wlist: list, maxblends: int, uppercase: bool):
 	wdict = dict()
 	blend_ctr = 0
 	with outfile:
-		# Show progress bars and ETAs
-		# TODO: print number of generated blends in real-time
-		# (as a progress bar, if limit was set in the options)
-		for w1 in tqdm(wlist, smoothing=0.01, dynamic_ncols=True,
-		               desc='Total words processed'):
-			if (maxblends <= 0) or (blend_ctr < maxblends):
-				for w2 in tqdm(wlist, leave=False, dynamic_ncols=True,
-				               desc='Current word vs. whole vocabulary'):
-					if (maxblends <= 0) or (blend_ctr < maxblends):
-						(w3, i) = check_pair(w1, w2, uppercase)
-						if len(w3) and (w3 not in wlist) and (w3 not in wdict):
-							# Write blended word into a plain text file
-							# together with overlap depth (\n is auto-appended)
-							# TODO: argumentize output string format
-							wdict[w3] = len(w1) - i
-							print(wdict[w3], w3, file=outfile)
-							blend_ctr += 1
-					else:
-						break
-			else:
-				break
+		if randomblends:
+			# TODO: print number of generated blends in real-time
+			# (as a progress bar, if limit was set in the options)
+			while (maxblends <= 0) or (blend_ctr < maxblends):
+				w1 = random.choice(wlist)
+				w2 = random.choice(wlist)
+				(wblend, depth) = check_pair(w1, w2, mindepth, uppercase)
+				if (depth > 0) and (wblend not in wlist) and (wblend not in wdict):
+					# Write blended word into a plain text file
+					# together with overlap depth (\n is auto-appended)
+					# TODO: argumentize output string format
+					wdict[wblend] = depth
+					print(depth, wblend, file=outfile)
+					blend_ctr += 1
+		else:
+			# Show progress bars and ETAs
+			# TODO: print number of generated blends in real-time
+			# (as a progress bar, if limit was set in the options)
+			for w1 in tqdm(wlist, smoothing=0.01, dynamic_ncols=True,
+			               desc='Total words processed'):
+				if (maxblends <= 0) or (blend_ctr < maxblends):
+					for w2 in tqdm(wlist, leave=False, dynamic_ncols=True,
+					               desc='Current word vs. whole vocabulary'):
+						if (maxblends <= 0) or (blend_ctr < maxblends):
+							(wblend, depth) = check_pair(w1, w2, mindepth, uppercase)
+							if (depth > 0) and (wblend not in wlist) and (wblend not in wdict):
+								# Write blended word into a plain text file
+								# together with overlap depth (\n is auto-appended)
+								# TODO: argumentize output string format
+								wdict[wblend] = depth
+								print(depth, wblend, file=outfile)
+								blend_ctr += 1
+						else:
+							break
+				else:
+					break
 	tqdm.write('Blends generated: ' + str(blend_ctr))
 	return outfile
 
 # ============================================================================ #
 
 
-def write_outfile_rnd(outfile, wlist: list, maxblends: int, uppercase: bool):
-	"""
-	Search for overlapping characters at the beginning & end of all words,
-	blend matching pairs, and write results into a text file.
-	Dictionary is used to save the number of overlapping chars (as values)
-	and to auto-deduplicate saved words (as keys).
-	"""
-	wdict = dict()
-	blend_ctr = 0
-	with outfile:
-		# TODO: print number of generated blends in real-time
-		# (as a progress bar, if limit was set in the options)
-		while (maxblends <= 0) or (blend_ctr < maxblends):
-			w1 = random.choice(wlist)
-			w2 = random.choice(wlist)
-			(w3, i) = check_pair(w1, w2, uppercase)
-			if len(w3) and (w3 not in wlist) and (w3 not in wdict):
-				# Write blended word into a plain text file
-				# together with overlap depth (\n is auto-appended)
-				# TODO: argumentize output string format
-				wdict[w3] = len(w1) - i
-				print(wdict[w3], w3, file=outfile)
-				blend_ctr += 1
-	return outfile
-
-# ============================================================================ #
-
-
-def check_pair(w1: str, w2: str, uppercase: bool):
+def check_pair(w1: str, w2: str, mindepth: int, uppercase: bool):
 	"""
 	Check a pair of words for at least 2 overlapping characters.
 	There must also be at least 1 non-overlapping character in each word.
 	(We'll argumentize those later)
 	"""
-	w3 = ''
+	wblend = ''
 	i = 0
+	depth = 0
 	if w1 != w2:
-		for i in range(1, len(w1) - 1):
+		for i in range(1, len(w1) - (mindepth-1)):
 			if w2.startswith(w1[i:], 0, len(w2) - 1):
-				# Match!
-				w3 = blend_pair(w1, w2, i, uppercase)
+				# Match! Now blend w1 & w2:
+				# take i non-overlapping chars from w1,
+				# add overlapping chars(optionally UPPERCASE them),
+				# then add remaining chars from w2.
+				depth = len(w1[i:])
+				if uppercase:
+					wblend = ''.join((w1[:i], w1[i:].upper(), w2[depth:]))
+				else:
+					wblend = ''.join((w1, w2[depth:]))
 				# After a match is found, exit for loop (this pair is done)
 				break
-	return w3, i
-
-# ============================================================================ #
-
-
-def blend_pair(w1: str, w2: str, i: int, uppercase: bool) -> str:
-	"""
-	Blend two words: take i non-overlapping chars from w1,
-	add overlapping chars (optionally UPPERCASE them),
-	then add remaining chars from w2.
-	"""
-	if uppercase:
-		w3 = ''.join((w1[:i], w1[i:].upper(), w2[len(w1[i:]):]))
-	else:
-		w3 = ''.join((w1, w2[len(w1[i:]):]))
-	return w3
+	return (wblend, depth)
 
 # ============================================================================ #
 
