@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Blend words from a vocabulary.
+Generate hilarious (or not) word blends from a vocabulary.
 
 Each word is checked for overlapping characters against every other word.
-It is considered a match when at least 2 chars are overlapping.
+It is considered a match when at least some chars are overlapping.
 Example: "revenge" and "vengeance" have 5 overlapping chars,
 so "reVENGEance" will be generated from this pair.
-Each word must have at least 1 non-overlapping char at the start/end.
+Both words must have some non-overlapping chars at the start/end.
 
 Uses Russian YARN database, by default.
 """
@@ -16,12 +16,13 @@ import argparse
 import random
 import string
 import sys
+
 from tqdm import tqdm
 
 # ============================================================================ #
 
 
-def main():
+def main() -> int:
 
 	print(' ┌\\\\────────────\\\\\\\\────────────\\\\┐')
 	print('>│ Shlakoblokun: the word blender │°>')
@@ -35,7 +36,7 @@ def main():
 
 	print(len(wlist), 'words loaded,', len(wlist)**2, 'pairs to check.')
 	print('Starting search for overlapping substrings in the words')
-	print('(this may take a few hours, depending on vocabulary size)...')
+	print('(this may take seconds or hours, depending on vocabulary size)...')
 
 	write_outfile(args.outfile, wlist, args.random, args.number, args.depth, args.uppercase)
 
@@ -62,7 +63,7 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('-d', '--depth', type=int, default=2,
 	                    help='minimum depth of blending (default: %(default)s)')
 	parser.add_argument('-u', '--uppercase', action='store_true',
-	                    help='uppercase overlapping characters in the output')
+	                    help='uppercase overLAPping characters in the output')
 	parser.add_argument('-c', '--capwords', action='store_true',
 	                    help='also include Capitalized words (usually proper names)')
 	parser.add_argument('-m', '--multiwords', action='store_true',
@@ -73,7 +74,9 @@ def parse_args() -> argparse.Namespace:
 # ============================================================================ #
 
 
-def read_infile(infile, incl_capwords: bool, incl_multiwords: bool) -> list:
+def read_infile(infile,
+                incl_capwords: bool,
+                incl_multiwords: bool) -> list:
 	"""
 	Read vocabulary file into a list
 	"""
@@ -83,7 +86,7 @@ def read_infile(infile, incl_capwords: bool, incl_multiwords: bool) -> list:
 			# Strip whitespace characters from both ends.
 			# This is always required, as reading a textfile auto-appends '\n'.
 			w = w.strip(string.whitespace)
-			# Skip comment lines, words with non-printables, words with <2 chars,
+			# Skip #comment lines, words with non-printables, words with <3 chars,
 			# capitalized words (arg-dependent) and multiword strings (arg-dependent)
 			if (w[0] != '#') \
 			   and (len(w) > 2) \
@@ -116,8 +119,9 @@ def write_outfile(outfile,
 			# (as a progress bar, if limit was set in the options)
 			while (maxblends <= 0) or (blend_ctr < maxblends):
 				w1 = random.choice(wlist)
+				# TODO: search for matching w2, instead of randomly trying
 				w2 = random.choice(wlist)
-				(wblend, depth) = check_pair(w1, w2, mindepth, uppercase)
+				(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
 				if (depth > 0) and (wblend not in wlist) and (wblend not in wdict):
 					# Write blended word into a plain text file
 					# together with overlap depth (\n is auto-appended)
@@ -135,7 +139,7 @@ def write_outfile(outfile,
 					for w2 in tqdm(wlist, leave=False, dynamic_ncols=True,
 					               desc='Current word vs. whole vocabulary'):
 						if (maxblends <= 0) or (blend_ctr < maxblends):
-							(wblend, depth) = check_pair(w1, w2, mindepth, uppercase)
+							(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
 							if (depth > 0) and (wblend not in wlist) and (wblend not in wdict):
 								# Write blended word into a plain text file
 								# together with overlap depth (\n is auto-appended)
@@ -153,11 +157,14 @@ def write_outfile(outfile,
 # ============================================================================ #
 
 
-def check_pair(w1: str, w2: str, mindepth: int, uppercase: bool):
+def check_n_blend(w1: str,
+                  w2: str,
+                  mindepth: int,
+                  uppercase: bool) -> tuple[str, int]:
 	"""
-	Check a pair of words for at least 2 overlapping characters.
-	There must also be at least 1 non-overlapping character in each word.
-	(We'll argumentize those later)
+	Check a pair of words for overlapping characters.
+	There must also be some non-overlapping characters in both words.
+	If match is found, blend them.
 	"""
 	wblend = ''
 	i = 0
