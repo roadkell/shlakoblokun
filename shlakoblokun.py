@@ -51,7 +51,6 @@ def parse_args() -> argparse.Namespace:
 	"""
 	Parse command line arguments
 	"""
-	# TODO: make -n mandatory for random mode
 	# TODO: argumentize min non-overlapping chars, min/max word len...
 	parser = argparse.ArgumentParser()
 	parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default='ru/yarn.txt')
@@ -59,7 +58,7 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('-r', '--random', action='store_true',
 	                    help='generate random blends, instead of going sequentially through the vocabulary')
 	parser.add_argument('-n', '--number', type=int, default=0,
-	                    help='number of word blends to generate; mandatory for random mode')
+	                    help='number of word blends to generate')
 	parser.add_argument('-d', '--depth', type=int, default=2,
 	                    help='minimum depth of blending (default: %(default)s)')
 	parser.add_argument('-u', '--uppercase', action='store_true',
@@ -112,6 +111,8 @@ def write_outfile(outfile,
 	and to auto-deduplicate saved words (as keys).
 	"""
 	with outfile:
+
+		# Show progress bars and ETAs
 		if maxblends:
 			blend_pbar = tqdm(total=maxblends,
 			                  smoothing=0.01,
@@ -128,10 +129,14 @@ def write_outfile(outfile,
 		               dynamic_ncols=True,
 		               unit='w',
 		               desc='First words processed')
+
 		wdict = dict()
 		blend_ctr = 0
 		w1_ctr = 0
+
 		while w1_ctr < len(wlist) and (maxblends <= 0 or blend_ctr < maxblends):
+
+			# TODO: make a clean way of exiting infinite mode
 
 			if randomblends:
 				w1 = random.choice(wlist)
@@ -172,7 +177,6 @@ def write_outfile(outfile,
 		w1_pbar.close()
 		blend_pbar.close()
 
-	tqdm.write('Total word blends generated: ' + str(blend_ctr))
 	return outfile
 
 # ============================================================================ #
@@ -188,7 +192,6 @@ def check_n_blend(w1: str,
 	If match is found, blend them.
 	"""
 	wblend = ''
-	i = 0
 	depth = 0
 	if w1 != w2:
 		for i in range(1, len(w1) - (mindepth-1)):
