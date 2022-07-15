@@ -10,6 +10,10 @@ Both words must have some non-overlapping chars at the start/end.
 
 Uses Russian YARN database, by default.
 """
+# TODO: add README.md for ru/yarn.txt
+# TODO: make a clean way of exiting infinite mode
+# TODO: load all vocabularies from a directory for a given language
+
 # ============================================================================ #
 
 import argparse
@@ -23,7 +27,6 @@ from tqdm import tqdm
 
 
 def main() -> int:
-
 	print(' ┌\\\\────────────\\\\\\\\────────────\\\\┐')
 	print('>│ Shlakoblokun: the word blender │°>')
 	print(' └//────────────////────────────//┘')
@@ -34,13 +37,15 @@ def main() -> int:
 
 	wlist = read_infile(args.infile, args.capwords, args.multiwords)
 
-	print(len(wlist), 'words loaded,', len(wlist)**2, 'pairs to check.')
-	print('Starting search for overlapping substrings in the words')
-	print('(this may take seconds or hours, depending on vocabulary size)...')
-
-	write_outfile(args.outfile, wlist, args.random, args.number, args.depth, args.uppercase)
-
 	print('Done.')
+	print(len(wlist), 'words loaded,', len(wlist)**2, 'pairs to check.')
+	print('Starting search for overlapping substrings in word pairs...')
+
+	numblends = write_outfile(args.outfile, wlist, args.random, args.number, args.depth, args.uppercase)
+
+	# TODO: add timer
+	print('Done.')
+	print(numblends, 'word blends generated.')
 
 	return 0
 
@@ -53,12 +58,15 @@ def parse_args() -> argparse.Namespace:
 	"""
 	# TODO: argumentize min non-overlapping chars, min/max word len...
 	parser = argparse.ArgumentParser()
-	parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default='ru/yarn.txt',
+	parser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
+	                    default='ru/yarn.txt',
 	                    help='vocabulary file (plain text)')
-	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default='output.txt',
+	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
+	                    default='output.txt',
 	                    help='output file (plain text)')
 	parser.add_argument('-r', '--random', action='store_true',
-	                    help='generate random blends, instead of going sequentially through the vocabulary')
+	                    help='generate random blends, instead of going \
+	                    sequentially through the vocabulary')
 	parser.add_argument('-n', '--number', type=int, default=0,
 	                    help='number of word blends to generate')
 	parser.add_argument('-d', '--depth', type=int, default=2,
@@ -105,7 +113,7 @@ def write_outfile(outfile,
                   randomblends: bool,
                   maxblends: int,
                   mindepth: int,
-                  uppercase: bool):
+                  uppercase: bool) -> int:
 	"""
 	Search for overlapping characters at the start & end of all words,
 	blend matching pairs, and write results into a text file.
@@ -137,8 +145,6 @@ def write_outfile(outfile,
 		w1_ctr = 0
 
 		while w1_ctr < len(wlist) and (maxblends <= 0 or blend_ctr < maxblends):
-
-			# TODO: make a clean way of exiting infinite mode
 
 			if randomblends:
 				w1 = random.choice(wlist)
@@ -179,7 +185,7 @@ def write_outfile(outfile,
 		w1_pbar.close()
 		blend_pbar.close()
 
-	return outfile
+	return blend_ctr
 
 # ============================================================================ #
 
