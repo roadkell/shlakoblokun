@@ -1,9 +1,11 @@
-### Шлакоблокунь: генератор смешных[^1] словослияний ###
+## Шлакоблокунь: генератор смешных[^1] словослияний ##
 ```
  ┌\\────────────\\\\────────────\\┐
 >│ Shlakoblokun: the word blender │°>
  └//────────────////────────────//┘
-
+```
+### Как пользоваться ###
+```
 usage: shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infile] [outfile]
 
 positional arguments:
@@ -19,4 +21,10 @@ options:
   -c, --capwords				also include Capitalized words (usually proper names)
   -m, --multiwords				also include multiword (space separated) phrases
 ```
+### Лицензия ###
+
+[Hippocratic License 3.0](https://firstdonoharm.dev/)
+
+Тезаурус [проекта YARN](https://russianword.net/) доступен на условиях лицензии [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/)
+
 [^1]: Но это неточно
