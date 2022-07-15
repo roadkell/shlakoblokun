@@ -54,9 +54,9 @@ def parse_args() -> argparse.Namespace:
 	# TODO: argumentize min non-overlapping chars, min/max word len...
 	parser = argparse.ArgumentParser()
 	parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default='ru/yarn.txt',
-	                    help='source vocabulary (plain text file)')
+	                    help='vocabulary file (plain text)')
 	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default='output.txt',
-	                    help='output file (plain text file)')
+	                    help='output file (plain text)')
 	parser.add_argument('-r', '--random', action='store_true',
 	                    help='generate random blends, instead of going sequentially through the vocabulary')
 	parser.add_argument('-n', '--number', type=int, default=0,
