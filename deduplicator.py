@@ -6,6 +6,7 @@ Dedupe a wordlist from a textfile or stdin, output as a new textfile or stdout.
 import argparse
 import sys
 
+
 def main() -> int:
 
 	# Parse command line arguments
@@ -26,6 +27,7 @@ def main() -> int:
 			f.write(word)
 
 	return 0
+
 
 if __name__ == '__main__':
 	sys.exit(main())
