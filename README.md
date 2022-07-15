@@ -9,8 +9,8 @@
 usage: shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infile] [outfile]
 
 positional arguments:
-  infile
-  outfile
+  infile                        vocabulary file (plain text)
+  outfile                       output file (plain text)
 
 options:
   -h, --help					show this help message and exit
