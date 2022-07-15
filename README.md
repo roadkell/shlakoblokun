@@ -4,22 +4,33 @@
 >│ Shlakoblokun: the word blender │°>
  └//────────────////────────────//┘
 ```
-### Как пользоваться ###
+
+### Што ###
+
+Генератор [шлакоблокуней](https://memepedia.ru/shlakoblokun-i-ego-druzya/): берётся словарь, в нём ищутся такие пары слов, чтобы из них могло получиться словослияние (шлакоблок + окунь = шлакоблокунь), результаты выводятся в текстовый файл.
+По умолчанию программа ищет по всему словарю и выводит все найденные словослияния. Если нужно по-быстрому сгенерировать несколько случайных шлакоблокуней, используйте опцию `--random`.
+
+### Как ###
+
+1. Скачать содержимое репозитория любым удобным способом.
+2. Если не установлен Python 3 — [установить](https://www.python.org/downloads/).
+3. Запустить из командной строки с желаемыми аргументами / опциями:
+
 ```
-usage: shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infile] [outfile]
+python3 shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infile] [outfile]
 
-positional arguments:
-  infile                        vocabulary file (plain text)
-  outfile                       output file (plain text)
+позиционные аргументы:
+	infile						текстовый файл словаря (по умолчанию: ru/yarn.txt)
+	outfile						выходной текстовый файл (по умолчанию: output.txt)
 
-options:
-  -h, --help					show this help message and exit
-  -r, --random					generate random blends, instead of going sequentially through the vocabulary
-  -n NUMBER, --number NUMBER	number of word blends to generate (default: unlimited)
-  -d DEPTH, --depth DEPTH		minimum depth of blending (default: 2)
-  -u, --uppercase				uppercase overLAPping characters in the output
-  -c, --capwords				also include Capitalized words (usually proper names)
-  -m, --multiwords				also include multiword (space separated) phrases
+опции:
+	-h, --help					вывести подсказку и выйти
+	-r, --random				генерировать случайные словослияния
+	-n NUMBER, --number NUMBER	число генерируемых словослияний (по умолчанию: неограниченно)
+	-d DEPTH, --depth DEPTH		минимальная глубина наложения (по умолчанию: 2)
+	-u, --uppercase				капитализировать общие буквы (шлакоБЛОКунь)
+	-c, --capwords				также включать слова с Заглавной буквы (обычно имена/названия)
+	-m, --multiwords			также включать словосочетания (с пробелами)
 ```
 ### Лицензия ###
 
