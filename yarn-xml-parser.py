@@ -19,6 +19,7 @@ import argparse
 import sys
 import xml.etree.ElementTree as ET
 
+
 def main() -> int:
 
 	# Parse command line arguments
@@ -42,6 +43,7 @@ def main() -> int:
 			print(word.text, file=f)
 
 	return 0
+
 
 if __name__ == '__main__':
 	sys.exit(main())

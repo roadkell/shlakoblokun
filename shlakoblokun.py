@@ -106,92 +106,73 @@ def write_outfile(outfile,
                   mindepth: int,
                   uppercase: bool):
 	"""
-	Search for overlapping characters at the beginning & end of all words,
-	blend matching pairs, and write results into a text file (dynamically).
+	Search for overlapping characters at the start & end of all words,
+	blend matching pairs, and write results into a text file.
 	Dictionary is used to save the number of overlapping chars (as values)
 	and to auto-deduplicate saved words (as keys).
 	"""
-	wdict = dict()
-	blend_ctr = 0
 	with outfile:
 		if maxblends:
-			with tqdm(total=maxblends,
-			          smoothing=0.01,
-			          dynamic_ncols=True,
-			          unit='w',
-			          desc='Word blends generated') as blend_bar:
-				while blend_ctr < maxblends:
-					if randomblends:
-						w1 = random.choice(wlist)
-						for w2 in tqdm(wlist,
-						               leave=False,
-						               dynamic_ncols=True,
-						               unit='w',
-						               desc='Current word vs. whole vocabulary'):
-							(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
-							if (depth > 0) \
-							   and (wblend.lower() not in wlist):
-								# For now, only add generated blend to a dict of
-								# possible blends
-								wdict[wblend] = depth
-						if len(wdict):
-							# Randomly choose one of generated blends (if present)
-							wblend = random.choice(list(wdict))
-							depth = wdict[wblend]
-							# Write blended word into a plain text file
-							# together with overlap depth (\n is auto-appended)
-							print(depth, wblend, file=outfile)
-							wdict.clear()
-							blend_ctr += 1
-							blend_bar.update()
-					else:
-						for w1 in tqdm(wlist,
-						               smoothing=0.01,
-						               dynamic_ncols=True,
-						               unit='w',
-						               desc='Total words processed'):
-							if blend_ctr < maxblends:
-								for w2 in tqdm(wlist,
-								               leave=False,
-								               dynamic_ncols=True,
-								               unit='w',
-								               desc='Current word vs. whole vocabulary'):
-									(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
-									if (depth > 0) \
-									   and (wblend.lower() not in wlist) \
-									   and (wblend not in wdict):
-										# Write blended word into a plain text file
-										# together with overlap depth (\n is auto-appended)
-										wdict[wblend] = depth
-										print(depth, wblend, file=outfile)
-										blend_ctr += 1
-										blend_bar.update()
-							else:
-								break
+			blend_pbar = tqdm(total=maxblends,
+			                  smoothing=0.01,
+			                  dynamic_ncols=True,
+			                  unit='w',
+			                  desc='Word blends generated')
 		else:
-			with tqdm(unit='w', smoothing=0.01, dynamic_ncols=True,
-			          desc='Word blends generated') as blend_bar:
-				for w1 in tqdm(wlist,
-				               smoothing=0.01,
-				               dynamic_ncols=True,
-				               unit='w',
-				               desc='Total words processed'):
-					for w2 in tqdm(wlist,
-					               leave=False,
-					               dynamic_ncols=True,
-					               unit='w',
-					               desc='Current word vs. whole vocabulary'):
-						(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
-						if (depth > 0) \
-						   and (wblend.lower() not in wlist) \
-						   and (wblend not in wdict):
-							# Write blended word into a plain text file
-							# together with overlap depth (\n is auto-appended)
-							wdict[wblend] = depth
-							print(depth, wblend, file=outfile)
-							blend_ctr += 1
-							blend_bar.update()
-	# tqdm.write('Blends generated: ' + str(blend_ctr))
+			blend_pbar = tqdm(smoothing=0.01,
+			                  dynamic_ncols=True,
+			                  unit='w',
+			                  desc='Word blends generated')
+		w1_pbar = tqdm(wlist,
+		               smoothing=0.01,
+		               dynamic_ncols=True,
+		               unit='w',
+		               desc='First words processed')
+		wdict = dict()
+		blend_ctr = 0
+		w1_ctr = 0
+		while w1_ctr < len(wlist) and (maxblends <= 0 or blend_ctr < maxblends):
+
+			if randomblends:
+				w1 = random.choice(wlist)
+			else:
+				w1 = wlist[w1_ctr]
+
+			for w2 in tqdm(wlist,
+			               leave=False,
+			               dynamic_ncols=True,
+			               unit='w',
+			               desc='Current word vs. whole vocabulary'):
+				(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
+				if (depth > 0) \
+				   and (wblend.lower() not in wlist) \
+				   and (wblend not in wdict):
+					wdict[wblend] = depth
+					if not randomblends:
+						# Dynamically write blended word into plain text file
+						# together with overlap depth (\n is auto-appended)
+						print(depth, wblend, file=outfile)
+						blend_ctr += 1
+						blend_pbar.update()
+
+			if randomblends and len(wdict):
+				# Randomly choose one of generated blends (if present)
+				wblend = random.choice(list(wdict))
+				depth = wdict[wblend]
+				# Write blended word into a plain text file
+				# together with overlap depth (\n is auto-appended)
+				print(depth, wblend, file=outfile)
+				wdict.clear()
+				blend_ctr += 1
+				blend_pbar.update()
+
+			w1_ctr += 1
+			w1_pbar.update()
+
+		w1_pbar.close()
+		blend_pbar.close()
+
+	tqdm.write('Total word blends generated: ' + str(blend_ctr))
 	return outfile
 
 # ============================================================================ #
