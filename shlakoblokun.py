@@ -26,6 +26,7 @@ from tqdm import tqdm
 
 
 def main() -> int:
+	print()
 	print('  ┌\\\\───\\\\\\\\───\\\\┐')
 	print(' >│ Shlakoblokun │°>')
 	print('  └//───////───//┘')
@@ -174,11 +175,12 @@ def write_outfile(outfile,
 			                  dynamic_ncols=True,
 			                  unit='w',
 			                  desc='Word blends generated')
-		w1_pbar = tqdm(wlist,
-		               smoothing=0.01,
-		               dynamic_ncols=True,
-		               unit='w',
-		               desc='First words processed')
+		if not randomblends:
+			w1_pbar = tqdm(wlist,
+			               smoothing=0.01,
+			               dynamic_ncols=True,
+			               unit='w',
+			               desc='First words processed')
 
 		wdict = dict()
 		blend_ctr = 0
@@ -220,9 +222,11 @@ def write_outfile(outfile,
 				blend_pbar.update()
 
 			w1_ctr += 1
-			w1_pbar.update()
+			if not randomblends:
+				w1_pbar.update()
 
-		w1_pbar.close()
+		if not randomblends:
+			w1_pbar.close()
 		blend_pbar.close()
 
 	return blend_ctr
