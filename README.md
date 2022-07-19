@@ -19,10 +19,10 @@
 3. Запустить из командной строки с желаемыми аргументами / опциями:
 
 ```
-python3 shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infile] [outfile]
+python3 shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infiles] [outfile]
 
 позиционные аргументы:
-  infile                        текстовый файл словаря (по умолчанию: ru/yarn.txt)
+  infiles                       путь к файлу или папке со словарями (по умолчанию: ru)
   outfile                       выходной текстовый файл (по умолчанию: output.txt)
 
 опции:
