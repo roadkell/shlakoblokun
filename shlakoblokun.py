@@ -7,16 +7,15 @@ It is considered a match when at least some chars are overlapping.
 Example: "revenge" and "vengeance" have 5 overlapping chars,
 so "reVENGEance" will be generated from this pair.
 Both words must have some non-overlapping chars at the start/end.
-
-Uses Russian YARN database, by default.
 """
-# TODO: add README.md for ru/yarn.txt
+# TODO: add README.md for ru/yarn.txt and all Wiktionary sub-vocabularies
 # TODO: make a clean way of exiting infinite mode
-# TODO: load all vocabularies from a directory for a given language
 
 # ============================================================================ #
 
 import argparse
+import os
+import pathlib
 import random
 import string
 import sys
@@ -27,21 +26,28 @@ from tqdm import tqdm
 
 
 def main() -> int:
-	print(' ┌\\\\────────────\\\\\\\\────────────\\\\┐')
-	print('>│ Shlakoblokun: the word blender │°>')
-	print(' └//────────────////────────────//┘')
+	print('  ┌\\\\───\\\\\\\\───\\\\┐')
+	print(' >│ Shlakoblokun │°>')
+	print('  └//───////───//┘')
+	print('Portmanteau Generator')
+	print()
 
 	args = parse_args()
 
 	print('Loading vocabulary...', end=' ')
 
-	wlist = read_infile(args.infile, args.capwords, args.multiwords)
+	wlist = read_infiles(args.infiles, args.capwords, args.multiwords)
 
 	print('Done.')
 	print(len(wlist), 'words loaded,', len(wlist)**2, 'pairs to check.')
 	print('Starting search for overlapping substrings in word pairs...')
 
-	numblends = write_outfile(args.outfile, wlist, args.random, args.number, args.depth, args.uppercase)
+	numblends = write_outfile(args.outfile,
+	                          wlist,
+	                          args.random,
+	                          args.number,
+	                          args.depth,
+	                          args.uppercase)
 
 	# TODO: add timer
 	print('Done.')
@@ -58,12 +64,12 @@ def parse_args() -> argparse.Namespace:
 	"""
 	# TODO: argumentize min non-overlapping chars, min/max word len...
 	parser = argparse.ArgumentParser()
-	parser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
-	                    default='ru/yarn.txt',
-	                    help='vocabulary file (plain text)')
+	parser.add_argument('infiles', nargs='?', type=pathlib.Path,
+	                    default='ru',
+	                    help='path to vocabulary file or directory')
 	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
 	                    default='output.txt',
-	                    help='output file (plain text)')
+	                    help='path to output file')
 	parser.add_argument('-r', '--random', action='store_true',
 	                    help='generate random blends, instead of going \
 	                    sequentially through the vocabulary')
@@ -77,32 +83,66 @@ def parse_args() -> argparse.Namespace:
 	                    help='also include Capitalized words (usually proper names)')
 	parser.add_argument('-m', '--multiwords', action='store_true',
 	                    help='also include multiword (space separated) phrases')
-	args = parser.parse_args()
+
+	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
+
 	return args
 
 # ============================================================================ #
 
 
-def read_infile(infile,
+def read_infiles(inpath,
+                 incl_capwords: bool,
+                 incl_multiwords: bool) -> list:
+	"""
+	Get list of filenames for vocabulary file[s] and read their content
+	"""
+	pathset = set()
+	inpath = inpath.resolve()
+	if inpath.is_dir():
+		for path in inpath.iterdir():
+			if not path.is_dir() \
+			   and not str(path).startswith('.') \
+			   and not str(path).endswith('~') \
+			   and (os.stat(path).st_size > 0):
+				pathset.add(path)
+	elif inpath.is_file() and (os.stat(inpath).st_size > 0):
+		pathset.add(inpath)
+	else:
+		raise FileNotFoundError(str(inpath))
+
+	# Using set to auto-dedupe word list
+	wset = set()
+	for path in pathset:
+		wset |= set(read_infile(path, incl_capwords, incl_multiwords))
+	wlist = list(wset)
+
+	return wlist
+
+# ============================================================================ #
+
+
+def read_infile(inpath,
                 incl_capwords: bool,
                 incl_multiwords: bool) -> list:
 	"""
 	Read vocabulary file into a list
 	"""
 	wlist = []
-	with infile:
+	with inpath.open() as infile:
 		for w in infile:
 			# Strip whitespace characters from both ends.
 			# This is always required, as reading a textfile auto-appends '\n'.
 			w = w.strip(string.whitespace)
 			# Skip #comment lines, words with non-printables, words with <3 chars,
 			# capitalized words (arg-dependent) and multiword strings (arg-dependent)
-			if (w[0] != '#') \
-			   and (len(w) > 2) \
+			if (len(w) > 2) \
+			   and (w[0] != '#') \
 			   and w.isprintable() \
 			   and (incl_capwords or w.islower()) \
 			   and (incl_multiwords or (' ' not in w)):
 				wlist.append(w)
+
 	return wlist
 
 # ============================================================================ #
@@ -215,6 +255,7 @@ def check_n_blend(w1: str,
 					wblend = ''.join((w1, w2[depth:]))
 				# After a match is found, exit for loop (this pair is done)
 				break
+
 	return (wblend, depth)
 
 # ============================================================================ #
