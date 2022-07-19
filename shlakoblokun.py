@@ -135,9 +135,11 @@ def read_infile(inpath,
 			# Strip whitespace characters from both ends.
 			# This is always required, as reading a textfile auto-appends '\n'.
 			w = w.strip(string.whitespace)
-			# Skip #comment lines, words with non-printables, words with <3 chars,
-			# capitalized words (arg-dependent) and multiword strings (arg-dependent)
+			# Skip empty strings, comment lines, words with non-printables,
+			# words with <3 chars, capitalized words (arg-dependent)
+			# and multiword strings (arg-dependent)
 			if (len(w) > 2) \
+			   and not w.isspace() \
 			   and (w[0] != '#') \
 			   and w.isprintable() \
 			   and (incl_capwords or w.islower()) \
