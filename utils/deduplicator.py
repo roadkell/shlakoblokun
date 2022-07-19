@@ -17,7 +17,7 @@ def main() -> int:
 	                       default=sys.stdout)
 	args = argparser.parse_args()
 
-	# Dedupe by importing worldlist into a set
+	# Dedupe by importing words into a set
 	wordset = set()
 	with args.infile as f:
 		for word in f:

@@ -25,9 +25,9 @@ def main() -> int:
 	# Parse command line arguments
 	argparser = argparse.ArgumentParser()
 	argparser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
-	                       default='ru/.unprocessed/yarn.xml')
+	                       default='../ru/.unprocessed/yarn.xml')
 	argparser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
-	                       default='ru/.unprocessed/yarn.txt')
+	                       default='../ru/.unprocessed/yarn.txt')
 	args = argparser.parse_args()
 
 	# Parse XML structure
