@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Parse Russian vocabulary from YARN project, presented in XML format,
-and output it as plain text file.
+and output result into plaintext file
 
 YARN project homepage:
 https://russianword.net/
@@ -24,10 +24,10 @@ def main() -> int:
 
 	# Parse command line arguments
 	argparser = argparse.ArgumentParser()
-	argparser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
-	                       default='../ru/.unprocessed/yarn.xml')
+	argparser.add_argument('infile', type=argparse.FileType('r'),
+	                       default=(None if sys.stdin.isatty() else sys.stdin))
 	argparser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
-	                       default='../ru/.unprocessed/yarn.txt')
+	                       default=sys.stdout)
 	args = argparser.parse_args()
 
 	# Parse XML structure
