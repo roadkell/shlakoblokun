@@ -38,9 +38,6 @@ python3 shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infiles
 
 [Hippocratic License 3.0](https://firstdonoharm.dev/)
 
-Материалы [Викисловаря](https://ru.wiktionary.org/) доступны на условиях лицензии [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/deed.ru)
-
-Материалы [проекта YARN](https://russianword.net/) доступны на условиях лицензии
-[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+[Викисловарь](https://ru.wiktionary.org/): [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/deed.ru)
 
 [^1]: Но это неточно
