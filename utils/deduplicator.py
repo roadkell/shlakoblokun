@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dedupe a wordlist from a textfile or stdin, output as a new textfile or stdout.
+Dedupe a wordlist from a textfile or stdin, output as a new textfile or stdout
 """
 
 import argparse
