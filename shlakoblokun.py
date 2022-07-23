@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate hilarious (or not) word blends from a vocabulary.
+Generate hilarious (or not) portmanteaus from a vocabulary
 
 Each word is checked for overlapping characters against every other word.
 It is considered a match when at least some chars are overlapping.
@@ -8,8 +8,8 @@ Example: "revenge" and "vengeance" have 5 overlapping chars,
 so "reVENGEance" will be generated from this pair.
 Both words must have some non-overlapping chars at the start/end.
 """
-# TODO: add README.md for ru/yarn.txt and all Wiktionary sub-vocabularies
 # TODO: make a clean way of exiting infinite mode
+# TODO: implement caching
 
 # ============================================================================ #
 
@@ -17,7 +17,6 @@ import argparse
 import os
 import pathlib
 import random
-import string
 import sys
 
 from tqdm import tqdm
@@ -27,9 +26,9 @@ from tqdm import tqdm
 
 def main() -> int:
 	print()
-	print('  ┌\\\\───\\\\\\\\───\\\\┐')
+	print('  ┌─\\\\\\──\\\\\\\\\\\\──┐')
 	print(' >│ Shlakoblokun │°>')
-	print('  └//───////───//┘')
+	print('  └─//────────//─┘')
 	print('Portmanteau Generator')
 	print()
 
@@ -50,9 +49,7 @@ def main() -> int:
 	                          args.depth,
 	                          args.uppercase)
 
-	# TODO: add timer
-	print('Done.')
-	print(numblends, 'word blends generated.')
+	# print('Done.')
 
 	return 0
 
@@ -69,7 +66,7 @@ def parse_args() -> argparse.Namespace:
 	                    default='ru',
 	                    help='path to vocabulary file or directory')
 	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
-	                    default='output.txt',
+	                    default=sys.stdout,
 	                    help='path to output file')
 	parser.add_argument('-r', '--random', action='store_true',
 	                    help='generate random blends, instead of going \
@@ -134,7 +131,7 @@ def read_infile(inpath,
 		for w in infile:
 			# Strip whitespace characters from both ends.
 			# This is always required, as reading a textfile auto-appends '\n'.
-			w = w.strip(string.whitespace)
+			w = w.strip()
 			# Skip empty strings, comment lines, words with non-printables,
 			# words with <3 chars, capitalized words (arg-dependent)
 			# and multiword strings (arg-dependent)
@@ -218,7 +215,10 @@ def write_outfile(outfile,
 				depth = wdict[wblend]
 				# Write blended word into a plain text file
 				# together with overlap depth (\n is auto-appended)
-				print(depth, wblend, file=outfile)
+				if outfile == sys.stdout:
+					tqdm.write(wblend)
+				else:
+					print(depth, wblend, file=outfile)
 				wdict.clear()
 				blend_ctr += 1
 				blend_pbar.update()
