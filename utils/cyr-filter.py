@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """
-Filter wordlist, keeping only words with Russian letters and punctuation
+Filter wordlist, keeping only words in Cyrillic
 
-Note, this is not equal to Russian-language words.
+Note, this includes many Cyrillic alphabets, see:
+https://en.wikipedia.org/wiki/Cyrillic_alphabets
+https://en.wikipedia.org/wiki/List_of_Cyrillic_letters
+https://en.wikipedia.org/wiki/Cyrillic_script_in_Unicode
 """
 
 import argparse
 import string
 import sys
+import unicodedata
 
 
 def main() -> int:
@@ -25,12 +29,10 @@ def main() -> int:
 	with args.infile as f:
 		for w in f:
 			w = w.strip()
-			if (len(w) > 1):
+			if w:
 				is_allowed = True
 				for ch in w:
-					if not ((1040 <= ord(ch) <= 1103)       # А..я
-					        or (ord(ch) == 1025)            # Ё
-					        or (ord(ch) == 1105)            # ё
+					if not (('CYRILLIC' in unicodedata.name(ch))
 					        or (ch in string.punctuation)):
 						is_allowed = False
 						break
