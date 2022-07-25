@@ -2,6 +2,8 @@
 """
 Remove inflections (word forms) from a ru-wordlist file or stdin,
 output as a new textfile or stdout
+
+Results can be unexpected, use with care.
 """
 # TODO: better algo for capitalization preservation.
 
