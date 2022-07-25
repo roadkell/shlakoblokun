@@ -39,6 +39,6 @@ python3 shlakoblokun.py [-h] [-r] [-n NUMBER] [-d DEPTH] [-u] [-c] [-m] [infiles
 
 [Hippocratic License 3.0](https://firstdonoharm.dev/)
 
-[Викисловарь](https://ru.wiktionary.org/): [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/deed.ru)
+[Викисловарь](https://ru.wiktionary.org/): [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
 
 [^1]: Но это неточно
