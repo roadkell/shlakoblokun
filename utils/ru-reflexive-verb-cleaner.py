@@ -23,8 +23,7 @@ def main() -> int:
 	with args.infile as f:
 		for w in f:
 			w = w.strip()
-			if (len(w) > 1):
-				wset.add(w)
+			wset.add(w)
 
 	# If a non-reflexive verb is present, remove reflexive form
 	newset = set()
