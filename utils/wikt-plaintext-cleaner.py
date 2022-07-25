@@ -22,10 +22,10 @@ def main() -> int:
 	wset = set()
 	with args.infile as f:
 		for w in f:
-			# Ignore empty strings, single chars, words with unprintables,
+			# Ignore empty strings, words with unprintables,
 			# words with colons and slashes (i.e. Wiktionary service pages)
 			w = w.strip()
-			if (len(w) > 1) \
+			if w \
 			   and not w.isspace() \
 			   and w.isprintable() \
 			   and ('/' not in w) \
