@@ -4,8 +4,6 @@ Remove inflections (word forms) from a ru-wordlist file or stdin,
 output as a new textfile or stdout
 """
 # TODO: better algo for capitalization preservation.
-# TODO: if there are many words corresponding to same normal form,
-# keep normal form; if only one word, keep original word.
 
 import argparse
 import os
@@ -40,22 +38,18 @@ def main() -> int:
 		with args.infile as f:
 			for w in f:
 				w = w.strip()
-				if ' ' not in w:
-					# cap_indices = []
-					# for ch in w:
-					# 	cap_indices.append(ch.isupper())
-					norm = morph.parse(w)[0].normal_form
-					if w.istitle():
-						norm = norm.title()
-					elif w.isupper():
-						norm = norm.upper()
-					# for (i, ch) in enumerate(norm):
-					# 	if cap_indices[i]:
-					wordset.add(norm)
-				else:
-					wordset.add(w)
-				offset += len(w.encode('utf-8')) + len(os.linesep)
-				pbar.update(offset - pbar.n)
+				if w:
+					if ' ' not in w:
+						norm = morph.parse(w)[0].normal_form
+						if w.istitle():
+							norm = norm.title()
+						elif w.isupper():
+							norm = norm.upper()
+						wordset.add(norm)
+					else:
+						wordset.add(w)
+					offset += len(w.encode('utf-8')) + len(os.linesep)
+					pbar.update(offset - pbar.n)
 
 	# Write wordset into a plain text file, auto-adding newlines
 	with args.outfile as f:
