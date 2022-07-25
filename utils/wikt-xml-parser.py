@@ -9,10 +9,15 @@ https://dumps.wikimedia.org/ruwiktionary/latest/
 https://meta.wikimedia.org/wiki/Mirroring_Wikimedia_project_XML_dumps#Current_Mirrors
 """
 
+# ============================================================================ #
+
 import argparse
+import re
 import sys
 
 from lxml import etree
+
+# ============================================================================ #
 
 
 def fast_iter(context, func, *args, **kwargs):
@@ -32,13 +37,18 @@ def fast_iter(context, func, *args, **kwargs):
 			while ancestor.getprevious() is not None:
 				del ancestor.getparent()[0]
 	del context
+
 	return titles
 
+# ============================================================================ #
 
-def process_elem(elem, ns, titles):
+
+def process_elem(elem, titles, ns, pattern):
+
 	if elem.getparent().tag == (ns+'page'):
 		is_ns0 = False
 		is_ru = False
+		has_pattern = False
 		for sib in etree.SiblingsIterator(elem, tag=('{*}ns')):
 			if sib.text == '0':
 				is_ns0 = True
@@ -46,28 +56,47 @@ def process_elem(elem, ns, titles):
 				break
 		for sib in etree.SiblingsIterator(elem, tag=('{*}revision')):
 			for sibchild in etree.ElementChildIterator(sib, tag='{*}text'):
-				if type(sibchild.text) == str \
-				   and '= {{-ru-}} =' in sibchild.text:
-					is_ru = True
-					# print('= {{-ru-}} =')
-					break
+				if type(sibchild.text) == str:
+					if '= {{-ru-}} =' in sibchild.text:
+						is_ru = True
+					# Filter by searching for additional strings in <text>
+					# (AND mode: all must be present)
+					# is_filter = True
+					# if len(filter) > 0:
+					# 	for s in filter:
+					# 		if s not in sibchild.text:
+					# 			is_filter = False
+					#           break
+					# Filter by searching for additional strings in <text>
+					# (OR mode: any one must be present)
+					if not pattern \
+					   or re.search(pattern, sibchild.text):
+						has_pattern = True
 		if elem.tag == (ns+'title') \
 		   and elem.text \
 		   and is_ns0 \
-		   and is_ru:
+		   and is_ru \
+		   and has_pattern:
 			titles.add(elem.text)
 			# print(elem.text)
+
 	return titles
+
+# ============================================================================ #
 
 
 def main() -> int:
 
-	argparser = argparse.ArgumentParser()
-	argparser.add_argument('infile', type=argparse.FileType('rb'),
-	                       default=(None if sys.stdin.isatty() else sys.stdin))
-	argparser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
-	                       default=sys.stdout)
-	args = argparser.parse_args()
+	parser = argparse.ArgumentParser()
+	parser.add_argument('infile', type=argparse.FileType('rb'),
+	                    default=(None if sys.stdin.isatty() else sys.stdin))
+	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
+	                    default=sys.stdout)
+	parser.add_argument('-p', '--pattern', nargs='*', type=str, default='',
+	                    help="additional regex pattern to search page text for; \
+	                          ex: '{{сущ.ru' matches '{{сущ ru' and '{{сущ-ru' \
+	                          which are markers for Russian nouns")
+	args = parser.parse_args()
 
 	titles = set()
 	ns = '{http://www.mediawiki.org/xml/export-0.10/}'
@@ -78,7 +107,7 @@ def main() -> int:
 			context = etree.iterparse(f, events=('end',), tag=ns+'title')
 			print('Done.')
 			print('Parsing XML tree...')
-			fast_iter(context, process_elem, ns, titles)
+			fast_iter(context, process_elem, titles, ns, args.pattern)
 
 		except etree.ParseError:
 			print('Unexpected end of XML document. Aborting...')
@@ -93,6 +122,8 @@ def main() -> int:
 	print('Done.')
 
 	return 0
+
+# ============================================================================ #
 
 
 if __name__ == '__main__':
