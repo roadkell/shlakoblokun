@@ -1,6 +1,4 @@
-.other/
-.unprocessed/
-/funniest.txt
+.ignore/
 /input.txt
 /output.txt
 /profile
