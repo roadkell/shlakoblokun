@@ -9,15 +9,15 @@ so "reVENGEance" will be generated from this pair.
 Both words must have some non-overlapping chars at the start/end.
 """
 # TODO: make a clean way of exiting infinite mode
-# TODO: implement caching
 
 # ============================================================================ #
 
 import argparse
 import os
-import pathlib
 import random
 import sys
+from collections import namedtuple
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -25,18 +25,30 @@ from tqdm import tqdm
 
 
 def main() -> int:
-	print()
-	print('  ┌─\\\\\\──\\\\\\\\\\\\──┐')
-	print(' >│ Shlakoblokun │°>')
-	print('  └─//────────//─┘')
+	print(' ┌────────────────┐')
+	print(' │ SHLAKOBL⎛⎞⎟⎠   │')
+	print(' │         ⎝⎠⎟⎞UN │')
+	print(' └────────────────┘')
 	print('Portmanteau Generator')
 	print()
 
+	print('Initializing...', end=' ')
+
 	args = parse_args()
 
+	# TODO: argumentize these
+	wlen_min = 3
+
+	# TODO: implement caching
+	cachepath = Path('ru/.cache')
+	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
+	cachelist = read_cache(cachepath)
+
+	print('Done.')
 	print('Loading vocabulary...', end=' ')
 
-	wlist = read_infiles(args.infiles, args.capwords, args.multiwords)
+	wlist = read_infiles(args.infiles)
+	wlist = filter_list(wlist, wlen_min, args.capwords, args.multiwords)
 
 	print('Done.')
 	print(len(wlist), 'words loaded,', len(wlist)**2, 'pairs to check.')
@@ -44,10 +56,13 @@ def main() -> int:
 
 	numblends = write_outfile(args.outfile,
 	                          wlist,
+	                          cachelist,
 	                          args.random,
 	                          args.number,
 	                          args.depth,
 	                          args.uppercase)
+
+	write_cache(cachepath, cachelist)
 
 	# print('Done.')
 
@@ -60,9 +75,8 @@ def parse_args() -> argparse.Namespace:
 	"""
 	Parse command line arguments
 	"""
-	# TODO: argumentize min non-overlapping chars, min/max word len...
 	parser = argparse.ArgumentParser()
-	parser.add_argument('infiles', nargs='?', type=pathlib.Path,
+	parser.add_argument('infiles', nargs='?', type=Path,
 	                    default='ru',
 	                    help='path to vocabulary file or directory')
 	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
@@ -89,9 +103,35 @@ def parse_args() -> argparse.Namespace:
 # ============================================================================ #
 
 
-def read_infiles(inpath,
-                 incl_capwords: bool,
-                 incl_multiwords: bool) -> list:
+def read_cache(cpath: Path) -> list[namedtuple]:
+	"""
+	Read cache file into a list of CacheEntries
+	"""
+	# TODO: use CSV
+	clist = []
+	with cpath.open() as f:
+		for centry in f:
+			clist.append(centry)
+
+	return clist
+
+# ============================================================================ #
+
+
+def write_cache(cpath: Path, clist: list[namedtuple]):
+	"""
+	Write list of CacheEntries back into cache file
+	"""
+	# TODO: use CSV
+	with cpath.open(mode='r+') as f:
+		pass
+
+	return 0
+
+# ============================================================================ #
+
+
+def read_infiles(inpath: Path) -> list:
 	"""
 	Get list of filenames for vocabulary file[s] and read their content
 	"""
@@ -99,6 +139,7 @@ def read_infiles(inpath,
 	inpath = inpath.resolve()
 	if inpath.is_dir():
 		for path in inpath.iterdir():
+			# Ignore empty, hidden, and temp files
 			if not path.is_dir() \
 			   and not str(path).startswith('.') \
 			   and not str(path).endswith('~') \
@@ -112,7 +153,7 @@ def read_infiles(inpath,
 	# Using set to auto-dedupe word list
 	wset = set()
 	for path in pathset:
-		wset |= set(read_infile(path, incl_capwords, incl_multiwords))
+		wset |= set(read_infile(path))
 	wlist = list(wset)
 
 	return wlist
@@ -120,27 +161,21 @@ def read_infiles(inpath,
 # ============================================================================ #
 
 
-def read_infile(inpath,
-                incl_capwords: bool,
-                incl_multiwords: bool) -> list:
+def read_infile(path) -> list:
 	"""
 	Read vocabulary file into a list
 	"""
 	wlist = []
-	with inpath.open() as infile:
-		for w in infile:
-			# Strip whitespace characters from both ends.
-			# This is always required, as reading a textfile auto-appends '\n'.
+	with path.open() as f:
+		for w in f:
+			# Strip whitespace characters from both ends. This is required,
+			# as reading a textfile includes trailing newline characters.
 			w = w.strip()
-			# Skip empty strings, comment lines, words with non-printables,
-			# words with <3 chars, capitalized words (arg-dependent)
-			# and multiword strings (arg-dependent)
-			if (len(w) > 2) \
+			# Skip empty strings, comment lines, words with non-printables
+			if w \
 			   and not w.isspace() \
 			   and (w[0] != '#') \
-			   and w.isprintable() \
-			   and (incl_capwords or w.islower()) \
-			   and (incl_multiwords or (' ' not in w)):
+			   and w.isprintable():
 				wlist.append(w)
 
 	return wlist
@@ -148,8 +183,28 @@ def read_infile(inpath,
 # ============================================================================ #
 
 
+def filter_list(wlist: list,
+                wlen_min: int,
+                incl_capwords: bool,
+                incl_multiwords: bool) -> list:
+	"""
+	Filter wordlist according to given arguments
+	"""
+	newlist = []
+	for w in wlist:
+		if (len(w) >= wlen_min) \
+		   and (incl_capwords or w.islower()) \
+		   and (incl_multiwords or (' ' not in w)):
+			newlist.append(w)
+
+	return newlist
+
+# ============================================================================ #
+
+
 def write_outfile(outfile,
                   wlist: list,
+                  cachelist: namedtuple,
                   randomblends: bool,
                   maxblends: int,
                   mindepth: int,
@@ -198,7 +253,7 @@ def write_outfile(outfile,
 			               unit='w',
 			               desc='Current word vs. whole vocabulary'):
 				(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
-				if (depth > 0) \
+				if wblend \
 				   and (wblend.lower() not in wlist) \
 				   and (wblend not in wdict):
 					wdict[wblend] = depth
