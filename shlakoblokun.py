@@ -9,6 +9,7 @@ so "reVENGEance" will be generated from this pair.
 Both words must have some non-overlapping chars at the start/end.
 """
 # TODO: make a clean way of exiting infinite mode
+# TODO: separate logic from presentation
 
 # ============================================================================ #
 
@@ -25,6 +26,7 @@ from tqdm import tqdm
 
 
 def main() -> int:
+	print()
 	print(' ┌────────────────┐')
 	print(' │ SHLAKOBL⎛⎞⎟⎠   │')
 	print(' │         ⎝⎠⎟⎞UN │')
@@ -32,37 +34,39 @@ def main() -> int:
 	print('Portmanteau Generator')
 	print()
 
-	print('Initializing...', end=' ')
+	# print('Initializing...', end=' ')
 
 	args = parse_args()
-
-	# TODO: argumentize these
-	wlen_min = 3
 
 	# TODO: implement caching
 	cachepath = Path('ru/.cache')
 	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
-	cachelist = read_cache(cachepath)
+	# cachelist = read_cache(cachepath)
+	cachelist = []
 
 	print('Done.')
 	print('Loading vocabulary...', end=' ')
 
-	wlist = read_infiles(args.infiles)
-	wlist = filter_list(wlist, wlen_min, args.capwords, args.multiwords)
+	words = [[], []]
+	(words[0], words[1]) = read_infiles(args.infile, args.w1, args.w2)
+
+	words[0] = filter_words(words[0], args.length, args.capwords, args.multiwords)
+	words[1] = filter_words(words[1], args.length, args.capwords, args.multiwords)
 
 	print('Done.')
-	print(len(wlist), 'words loaded,', len(wlist)**2, 'pairs to check.')
+	print(len(words[0]) + len(words[1]), 'words loaded,',
+	      len(words[0]) * len(words[1]), 'pairs to check.')
 	print('Starting search for overlapping substrings in word pairs...')
 
 	numblends = write_outfile(args.outfile,
-	                          wlist,
+	                          words,
 	                          cachelist,
 	                          args.random,
 	                          args.number,
 	                          args.depth,
 	                          args.uppercase)
 
-	write_cache(cachepath, cachelist)
+	# write_cache(cachepath, cachelist)
 
 	# print('Done.')
 
@@ -76,27 +80,52 @@ def parse_args() -> argparse.Namespace:
 	Parse command line arguments
 	"""
 	parser = argparse.ArgumentParser()
-	parser.add_argument('infiles', nargs='?', type=Path,
-	                    default='ru',
-	                    help='path to vocabulary file or directory')
-	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
+
+	parser.add_argument('-i', '--infile',
+	                    nargs='*',
+	                    default=(None if sys.stdin.isatty() else sys.stdin),
+	                    help='source vocabulary file[s] or dir[s]')
+	parser.add_argument('-w1',
+	                    nargs='*',
+	                    help='vocabulary file[s]/dir[s] to only source 1st words from')
+	parser.add_argument('-w2',
+	                    nargs='*',
+	                    help='vocabulary file[s]/dir[s] to only source 2nd words from')
+	parser.add_argument('-o', '--outfile',
+	                    nargs='?',
+	                    type=argparse.FileType('w'),
 	                    default=sys.stdout,
-	                    help='path to output file')
-	parser.add_argument('-r', '--random', action='store_true',
+	                    help='output file')
+	parser.add_argument('-r', '--random',
+	                    action='store_true',
 	                    help='generate random blends, instead of going \
 	                    sequentially through the vocabulary')
-	parser.add_argument('-n', '--number', type=int, default=0,
-	                    help='number of word blends to generate')
-	parser.add_argument('-d', '--depth', type=int, default=2,
+	parser.add_argument('-n', '--number',
+	                    type=int,
+	                    default=0,
+	                    help='number of word blends to generate (default: unlimited)')
+	parser.add_argument('-d', '--depth',
+	                    type=int,
+	                    default=2,
 	                    help='minimum depth of blending (default: %(default)s)')
-	parser.add_argument('-u', '--uppercase', action='store_true',
+	parser.add_argument('-l', '--length',
+	                    type=int,
+	                    default=3,
+	                    help='minimum length of source words (default: %(default)s)')
+	parser.add_argument('-u', '--uppercase',
+	                    action='store_true',
 	                    help='uppercase overLAPping characters in the output')
-	parser.add_argument('-c', '--capwords', action='store_true',
+	parser.add_argument('-c', '--capwords',
+	                    action='store_true',
 	                    help='also include Capitalized words (usually proper names)')
-	parser.add_argument('-m', '--multiwords', action='store_true',
+	parser.add_argument('-m', '--multiwords',
+	                    action='store_true',
 	                    help='also include multiword (space separated) phrases')
 
 	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
+
+	if not (args.infile or args.w1 or args.w2):
+		parser.error('No source vocabularies specified')
 
 	return args
 
@@ -131,79 +160,100 @@ def write_cache(cpath: Path, clist: list[namedtuple]):
 # ============================================================================ #
 
 
-def read_infiles(inpath: Path) -> list:
+def read_infiles(*pathstrs) -> tuple[list, list]:
 	"""
 	Get list of filenames for vocabulary file[s] and read their content
 	"""
-	pathset = set()
-	inpath = inpath.resolve()
-	if inpath.is_dir():
-		for path in inpath.iterdir():
-			# Ignore empty, hidden, and temp files
-			if not path.is_dir() \
-			   and not str(path).startswith('.') \
-			   and not str(path).endswith('~') \
-			   and (os.stat(path).st_size > 0):
-				pathset.add(path)
-	elif inpath.is_file() and (os.stat(inpath).st_size > 0):
-		pathset.add(inpath)
-	else:
-		raise FileNotFoundError(str(inpath))
+	pathsets = [set(), set(), set()]    # common, w1, w2
+	for (i, pp) in enumerate(pathstrs):
+		if type(pp) == list:
+			for p in pp:
+				pathsets[i] |= pathstr2pathset(p)
+		elif type(pp) == str:
+			pathsets[i] = pathstr2pathset(pp)
+		# else:
+			# print(str(pp) + ' is not a valid path, skipping...')
 
-	# Using set to auto-dedupe word list
-	wset = set()
-	for path in pathset:
-		wset |= set(read_infile(path))
-	wlist = list(wset)
+	wordsets = [set(), set(), set()]
+	for (i, ps) in enumerate(pathsets):
+		for p in ps:
+			wordsets[i] |= set(file2list(p))
 
-	return wlist
+	w1s = sorted(wordsets[0] | wordsets[1])
+	w2s = sorted(wordsets[0] | wordsets[2])
+
+	return (w1s, w2s)
 
 # ============================================================================ #
 
 
-def read_infile(path) -> list:
+def pathstr2pathset(pathstr: str) -> set[Path]:
 	"""
-	Read vocabulary file into a list
+	Unwrap a given nonempty path string into a set of absolute paths
 	"""
-	wlist = []
+	paths = set()
+	if pathstr:
+		path = Path(pathstr).resolve()
+		if path.is_dir():
+			for p in path.iterdir():
+				# Ignore empty, hidden, and temp files
+				if not p.is_dir() \
+				   and not str(p).startswith('.') \
+				   and not str(p).endswith('~') \
+				   and (os.stat(p).st_size > 0):
+					paths.add(p)
+		elif path.is_file() and (os.stat(path).st_size > 0):
+			# If a path to a file is given, always read it, even if temp/hidden
+			paths.add(path)
+
+	return paths
+
+# ============================================================================ #
+
+
+def file2list(path: Path) -> list[str]:
+	"""
+	Import words from a single vocabulary file into a list
+	"""
+	words = []
 	with path.open() as f:
 		for w in f:
-			# Strip whitespace characters from both ends. This is required,
-			# as reading a textfile includes trailing newline characters.
-			w = w.strip()
-			# Skip empty strings, comment lines, words with non-printables
-			if w \
-			   and not w.isspace() \
-			   and (w[0] != '#') \
-			   and w.isprintable():
-				wlist.append(w)
+			if w:
+				# Strip whitespace characters from both ends. This is required,
+				# as reading a textfile includes trailing newline characters.
+				w = w.strip()
+				# Skip empty strings, comment lines, words with non-printables
+				if not w.isspace() \
+				   and (w[0] != '#') \
+				   and w.isprintable():
+					words.append(w)
 
-	return wlist
+	return words
 
 # ============================================================================ #
 
 
-def filter_list(wlist: list,
-                wlen_min: int,
-                incl_capwords: bool,
-                incl_multiwords: bool) -> list:
+def filter_words(words: list,
+                 wlen_min: int,
+                 incl_capwords: bool,
+                 incl_multiwords: bool) -> list[str]:
 	"""
-	Filter wordlist according to given arguments
+	Filter word list according to given arguments
 	"""
-	newlist = []
-	for w in wlist:
+	outwords = []
+	for w in words:
 		if (len(w) >= wlen_min) \
 		   and (incl_capwords or w.islower()) \
 		   and (incl_multiwords or (' ' not in w)):
-			newlist.append(w)
+			outwords.append(w)
 
-	return newlist
+	return outwords
 
 # ============================================================================ #
 
 
 def write_outfile(outfile,
-                  wlist: list,
+                  words: list[list[str]],
                   cachelist: namedtuple,
                   randomblends: bool,
                   maxblends: int,
@@ -230,7 +280,7 @@ def write_outfile(outfile,
 			                  unit='w',
 			                  desc='Word blends generated')
 		if not randomblends:
-			w1_pbar = tqdm(wlist,
+			w1_pbar = tqdm(words[0],
 			               smoothing=0.01,
 			               dynamic_ncols=True,
 			               unit='w',
@@ -240,21 +290,22 @@ def write_outfile(outfile,
 		blend_ctr = 0
 		w1_ctr = 0
 
-		while w1_ctr < len(wlist) and (maxblends <= 0 or blend_ctr < maxblends):
+		while w1_ctr < len(words[0]) and (maxblends <= 0 or blend_ctr < maxblends):
 
 			if randomblends:
-				w1 = random.choice(wlist)
+				w1 = random.choice(words[0])
 			else:
-				w1 = wlist[w1_ctr]
+				w1 = words[0][w1_ctr]
 
-			for w2 in tqdm(wlist,
+			for w2 in tqdm(words[1],
 			               leave=False,
 			               dynamic_ncols=True,
 			               unit='w',
 			               desc='Current word vs. whole vocabulary'):
 				(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
 				if wblend \
-				   and (wblend.lower() not in wlist) \
+				   and (wblend.lower() not in words[0]) \
+				   and (wblend.lower() not in words[1]) \
 				   and (wblend not in wdict):
 					wdict[wblend] = depth
 					if not randomblends:
