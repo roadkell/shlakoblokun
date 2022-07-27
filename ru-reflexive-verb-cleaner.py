@@ -11,32 +11,35 @@ import sys
 def main() -> int:
 
 	# Parse command line arguments
-	argparser = argparse.ArgumentParser()
-	argparser.add_argument('infile', type=argparse.FileType('r'),
-	                       default=(None if sys.stdin.isatty() else sys.stdin))
-	argparser.add_argument('outfile', nargs='?', type=argparse.FileType('w'),
-	                       default=sys.stdout)
-	args = argparser.parse_args()
+	parser = argparse.ArgumentParser()
+	parser.add_argument('infile',
+	                    type=argparse.FileType('r'),
+	                    default=(None if sys.stdin.isatty() else sys.stdin))
+	parser.add_argument('outfile',
+	                    nargs='?',
+	                    type=argparse.FileType('w'),
+	                    default=sys.stdout)
+	args = parser.parse_args()
 
 	# Dedupe by importing words into a set
-	wset = set()
+	words = set()
 	with args.infile as f:
 		for w in f:
 			w = w.strip()
-			wset.add(w)
+			words.add(w)
 
 	# If a non-reflexive verb is present, remove reflexive form
-	newset = set()
-	for w in wset:
+	cleanwords = set()
+	for w in words:
 		if w.endswith('ся'):
-			if not w.removesuffix('ся') in wset:
-				newset.add(w)
+			if not w.removesuffix('ся') in words:
+				cleanwords.add(w)
 		else:
-			newset.add(w)
+			cleanwords.add(w)
 
 	# Write sorted wordset into a plain text file, auto-adding newlines
 	with args.outfile as f:
-		for w in sorted(newset):
+		for w in sorted(cleanwords):
 			print(w, file=f)
 
 	return 0
