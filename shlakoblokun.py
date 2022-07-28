@@ -34,8 +34,6 @@ def main() -> int:
 	print('Portmanteau Generator')
 	print()
 
-	# print('Initializing...', end=' ')
-
 	args = parse_args()
 
 	# TODO: implement caching
@@ -44,14 +42,17 @@ def main() -> int:
 	# cachelist = read_cache(cachepath)
 	cachelist = []
 
-	print('Done.')
 	print('Loading vocabulary...', end=' ')
 
 	words = [[], []]
 	(words[0], words[1]) = read_infiles(args.infile, args.w1, args.w2)
 
-	words[0] = filter_words(words[0], args.length, args.capwords, args.multiwords)
-	words[1] = filter_words(words[1], args.length, args.capwords, args.multiwords)
+	for (i, ws) in enumerate(words):
+		words[i] = filter_words(ws,
+		                        args.randomize,
+		                        args.length,
+		                        args.capwords,
+		                        args.multiwords)
 
 	print('Done.')
 	print(len(words[0]) + len(words[1]), 'words loaded,',
@@ -61,7 +62,6 @@ def main() -> int:
 	numblends = write_outfile(args.outfile,
 	                          words,
 	                          cachelist,
-	                          args.random,
 	                          args.number,
 	                          args.depth,
 	                          args.uppercase)
@@ -96,10 +96,9 @@ def parse_args() -> argparse.Namespace:
 	                    type=argparse.FileType('w'),
 	                    default=sys.stdout,
 	                    help='output file')
-	parser.add_argument('-r', '--random',
+	parser.add_argument('-r', '--randomize',
 	                    action='store_true',
-	                    help='generate random blends, instead of going \
-	                    sequentially through the vocabulary')
+	                    help='shuffle vocabulary, instead of going alphabetically')
 	parser.add_argument('-n', '--number',
 	                    type=int,
 	                    default=0,
@@ -234,6 +233,7 @@ def file2list(path: Path) -> list[str]:
 
 
 def filter_words(words: list,
+                 do_randomize: bool,
                  wlen_min: int,
                  incl_capwords: bool,
                  incl_multiwords: bool) -> list[str]:
@@ -247,6 +247,9 @@ def filter_words(words: list,
 		   and (incl_multiwords or (' ' not in w)):
 			outwords.append(w)
 
+	if do_randomize:
+		random.shuffle(outwords)
+
 	return outwords
 
 # ============================================================================ #
@@ -255,7 +258,6 @@ def filter_words(words: list,
 def write_outfile(outfile,
                   words: list[list[str]],
                   cachelist: namedtuple,
-                  randomblends: bool,
                   maxblends: int,
                   mindepth: int,
                   uppercase: bool) -> int:
@@ -279,7 +281,6 @@ def write_outfile(outfile,
 			                  dynamic_ncols=True,
 			                  unit='w',
 			                  desc='Word blends generated')
-		if not randomblends:
 			w1_pbar = tqdm(words[0],
 			               smoothing=0.01,
 			               dynamic_ncols=True,
@@ -292,10 +293,7 @@ def write_outfile(outfile,
 
 		while w1_ctr < len(words[0]) and (maxblends <= 0 or blend_ctr < maxblends):
 
-			if randomblends:
-				w1 = random.choice(words[0])
-			else:
-				w1 = words[0][w1_ctr]
+			w1 = words[0][w1_ctr]
 
 			for w2 in tqdm(words[1],
 			               leave=False,
@@ -308,33 +306,16 @@ def write_outfile(outfile,
 				   and (wblend.lower() not in words[1]) \
 				   and (wblend not in wdict):
 					wdict[wblend] = depth
-					if not randomblends:
-						# Dynamically write blended word into plain text file
-						# together with overlap depth (\n is auto-appended)
-						print(depth, wblend, file=outfile)
-						blend_ctr += 1
-						blend_pbar.update()
-
-			if randomblends and len(wdict):
-				# Randomly choose one of generated blends (if present)
-				wblend = random.choice(list(wdict))
-				depth = wdict[wblend]
-				# Write blended word into a plain text file
-				# together with overlap depth (\n is auto-appended)
-				if outfile == sys.stdout:
-					tqdm.write(wblend)
-				else:
+					# Dynamically write blended word into plain text file
+					# together with overlap depth (\n is auto-appended)
 					print(depth, wblend, file=outfile)
-				wdict.clear()
-				blend_ctr += 1
-				blend_pbar.update()
+					blend_ctr += 1
+					blend_pbar.update()
 
 			w1_ctr += 1
-			if not randomblends:
-				w1_pbar.update()
+			w1_pbar.update()
 
-		if not randomblends:
-			w1_pbar.close()
+		w1_pbar.close()
 		blend_pbar.close()
 
 	return blend_ctr
