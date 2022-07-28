@@ -21,7 +21,7 @@
 3. Запустить из командной строки с желаемыми аргументами / опциями:
 
 ```
-python3 shlakoblokun.py [-h] [-i [INFILE ...]] [-w1 [W1 ...]] [-w2 [W2 ...]] [-o [OUTFILE]] [-r] [-n NUMBER] [-d DEPTH] [-l LENGTH] [-u] [-c] [-m]
+python3 shlakoblokun.py [-h] [-i [INFILE ...]] [-w1 [W1 ...]] [-w2 [W2 ...]] [-o [OUTFILE]] [-r] [-n NUMBER] [-d DEPTH] [-l LENGTH] [-u] [-c] [-p]
 
 опции:
   -h, --help                              вывести подсказку и выйти
@@ -34,8 +34,8 @@ python3 shlakoblokun.py [-h] [-i [INFILE ...]] [-w1 [W1 ...]] [-w2 [W2 ...]] [-o
   -d DEPTH, --depth DEPTH                 минимальная глубина наложения (по умолчанию: 2)
   -l LENGTH, --length LENGTH              минимальная длина исходных слов (по умолчанию: 3)
   -u, --uppercase                         капитализировать общие буквы (шлакоблОКунь)
-  -c, --capwords                          также включать слова с Заглавной буквы (обычно имена/названия)
-  -m, --multiwords                        также включать словосочетания (с пробелами)
+  -c, --capitalized                       также включать слова с заглавной буквы (имена/названия/аббревиатуры)
+  -p, --phrases                           также включать словосочетания с пробелами
 ```
 
 В качестве словарей-исходников можно указать один или несколько текстовых файлов или папок.
@@ -43,9 +43,9 @@ python3 shlakoblokun.py [-h] [-i [INFILE ...]] [-w1 [W1 ...]] [-w2 [W2 ...]] [-o
 
 Пример использования:
 ```
-python3 shlakoblokun.py -i ru/nouns.txt -w2 ru/adjectives.txt ru/adverbs.txt ru/verbs-nonrefl.txt -o output.txt
+python3 shlakoblokun.py -i ru/nouns.txt -w2 ru/adjectives.txt ru/adverbs.txt ru/verbs.txt -o output.txt
 ```
-Здесь в качестве словаря для обоих слов указан файл `ru/nouns.txt`, в то время как `ru/adjectives.txt`, `ru/adverbs.txt`, `ru/verbs-nonrefl.txt` указаны как словари для второго слова.
+Здесь в качестве словаря для обоих слов указан файл `ru/nouns.txt`, в то время как `ru/adjectives.txt`, `ru/adverbs.txt`, `ru/verbs.txt` указаны как словари для второго слова.
 Т.е. при генерации словослияний первое слово будет браться из `ru/nouns.txt`, а второе - из всех приведённых словарей.
 
 

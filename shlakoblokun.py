@@ -113,13 +113,13 @@ def parse_args() -> argparse.Namespace:
 	                    help='minimum length of source words (default: %(default)s)')
 	parser.add_argument('-u', '--uppercase',
 	                    action='store_true',
-	                    help='uppercase overLAPping characters in the output')
+	                    help='uppercase overlapping characters in the output ("reVENGEance")')
 	parser.add_argument('-c', '--capitalized',
 	                    action='store_true',
-	                    help='also include Capitalized words (usually proper names)')
+	                    help='also include Capitalized words (proper names / abbreviations)')
 	parser.add_argument('-p', '--phrases',
 	                    action='store_true',
-	                    help='also include space separated phrases')
+	                    help='also include multi-word phrases')
 
 	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
