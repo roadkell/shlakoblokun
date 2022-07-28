@@ -281,11 +281,11 @@ def write_outfile(outfile,
 			                  dynamic_ncols=True,
 			                  unit='w',
 			                  desc='Word blends generated')
-			w1_pbar = tqdm(words[0],
-			               smoothing=0.01,
-			               dynamic_ncols=True,
-			               unit='w',
-			               desc='First words processed')
+		w1_pbar = tqdm(words[0],
+		               smoothing=0.01,
+		               dynamic_ncols=True,
+		               unit='w',
+		               desc='First words processed')
 
 		wdict = dict()
 		blend_ctr = 0
