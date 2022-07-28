@@ -26,12 +26,12 @@ from tqdm import tqdm
 
 
 def main() -> int:
-	print()
-	print(' ┌────────────────┐')
-	print(' │ SHLAKOBL⎛⎞⎟⎠   │')
-	print(' │         ⎝⎠⎟⎞UN │')
-	print(' └────────────────┘')
-	print('Portmanteau Generator')
+	print('         \\\\\\\\\\\\\\\\')
+	print('   ┌────────────────┐__')
+	print(' \\\\│ SHLAKOBL⎛⎞⎟⎠   │ °_\\')
+	print(' //│         ⎝⎠⎟⎞UN │___/')
+	print('   └────────────────┘')
+	print('  Portmanteau Generator')
 	print()
 
 	args = parse_args()
