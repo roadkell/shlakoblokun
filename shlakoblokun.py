@@ -51,8 +51,8 @@ def main() -> int:
 		words[i] = filter_words(ws,
 		                        args.randomize,
 		                        args.length,
-		                        args.capwords,
-		                        args.multiwords)
+		                        args.capitalized,
+		                        args.phrases)
 
 	print('Done.')
 	print(len(words[0]) + len(words[1]), 'words loaded,',
@@ -114,12 +114,12 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('-u', '--uppercase',
 	                    action='store_true',
 	                    help='uppercase overLAPping characters in the output')
-	parser.add_argument('-c', '--capwords',
+	parser.add_argument('-c', '--capitalized',
 	                    action='store_true',
 	                    help='also include Capitalized words (usually proper names)')
-	parser.add_argument('-m', '--multiwords',
+	parser.add_argument('-p', '--phrases',
 	                    action='store_true',
-	                    help='also include multiword (space separated) phrases')
+	                    help='also include space separated phrases')
 
 	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
@@ -235,16 +235,16 @@ def file2list(path: Path) -> list[str]:
 def filter_words(words: list,
                  do_randomize: bool,
                  wlen_min: int,
-                 incl_capwords: bool,
-                 incl_multiwords: bool) -> list[str]:
+                 incl_capitalized: bool,
+                 incl_phrases: bool) -> list[str]:
 	"""
 	Filter word list according to given arguments
 	"""
 	outwords = []
 	for w in words:
 		if (len(w) >= wlen_min) \
-		   and (incl_capwords or w.islower()) \
-		   and (incl_multiwords or (' ' not in w)):
+		   and (incl_capitalized or w.islower()) \
+		   and (incl_phrases or (' ' not in w)):
 			outwords.append(w)
 
 	if do_randomize:
@@ -281,13 +281,14 @@ def write_outfile(outfile,
 			                  dynamic_ncols=True,
 			                  unit='w',
 			                  desc='Word blends generated')
+
 		w1_pbar = tqdm(words[0],
 		               smoothing=0.01,
 		               dynamic_ncols=True,
 		               unit='w',
 		               desc='First words processed')
 
-		wdict = dict()
+		blends = dict()
 		blend_ctr = 0
 		w1_ctr = 0
 
@@ -300,17 +301,20 @@ def write_outfile(outfile,
 			               dynamic_ncols=True,
 			               unit='w',
 			               desc='Current word vs. whole vocabulary'):
-				(wblend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
-				if wblend \
-				   and (wblend.lower() not in words[0]) \
-				   and (wblend.lower() not in words[1]) \
-				   and (wblend not in wdict):
-					wdict[wblend] = depth
+
+				(blend, depth) = check_n_blend(w1, w2, mindepth, uppercase)
+				if blend \
+				   and (blend not in (words[0] + words[1])) \
+				   and (blend.lower() not in (words[0] + words[1])) \
+				   and (blend not in blends):
+					blends[blend] = depth
 					# Dynamically write blended word into plain text file
 					# together with overlap depth (\n is auto-appended)
-					print(depth, wblend, file=outfile)
+					print(depth, blend, file=outfile)
 					blend_ctr += 1
 					blend_pbar.update()
+					if blend_ctr >= maxblends:
+						break
 
 			w1_ctr += 1
 			w1_pbar.update()
@@ -334,20 +338,20 @@ def check_n_blend(w1: str,
 	"""
 	wblend = ''
 	depth = 0
-	if w1 != w2:
-		for i in range(1, len(w1) - (mindepth-1)):
-			if w2.startswith(w1[i:], 0, len(w2) - 1):
-				# Match! Now blend w1 & w2:
-				# take i non-overlapping chars from w1,
-				# add overlapping chars(optionally UPPERCASE them),
-				# then add remaining chars from w2.
-				depth = len(w1[i:])
-				if uppercase:
-					wblend = ''.join((w1[:i], w1[i:].upper(), w2[depth:]))
-				else:
-					wblend = ''.join((w1, w2[depth:]))
-				# After a match is found, exit for loop (this pair is done)
-				break
+	# if w1 != w2:
+	for i in range(1, len(w1) - (mindepth-1)):
+		if w2.casefold().startswith(w1.casefold()[i:], 0, len(w2) - 1):
+			# Match! Now blend w1 & w2:
+			# take i non-overlapping chars from w1,
+			# add overlapping chars(optionally UPPERCASE them),
+			# then add remaining chars from w2.
+			depth = len(w1[i:])
+			if uppercase:
+				wblend = ''.join((w1[:i], w1[i:].upper(), w2[depth:]))
+			else:
+				wblend = ''.join((w1, w2[depth:]))
+			# After a match is found, exit for loop (this pair is done)
+			break
 
 	return (wblend, depth)
 
