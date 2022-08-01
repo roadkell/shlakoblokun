@@ -133,15 +133,15 @@ def parse_args() -> argparse.Namespace:
 	                    type=int,
 	                    default=2,
 	                    help='minimum depth of blending (default: %(default)s)')
-	parser.add_argument('--minfree',
+	parser.add_argument('-f', '--minfree',
 	                    type=int,
 	                    default=1,
 	                    help='minimum number of non-overlapping chars in each word (default: %(default)s)')
-	parser.add_argument('--minlength',
+	parser.add_argument('-l', '--minlength',
 	                    type=int,
 	                    default=3,
 	                    help='minimum length of source words (default: %(default)s)')
-	parser.add_argument('--maxlength',
+	parser.add_argument('-L', '--maxlength',
 	                    type=int,
 	                    default=0,
 	                    help='maximum length of source words (default: unlimited)')
