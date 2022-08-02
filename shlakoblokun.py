@@ -31,9 +31,8 @@ It might be slightly confusing with multidimensional stuff, for example:
 	          2-dimensional sequence, could also be 'wss' or 'wws' or 'www');
 	          and since word is a str (a sequence itself), its chars may be
 	          addressed as 'chsss' (3-dimensional sequence);
-	          we don't go that deep though. =)
+	          but we don't go that deep, thankfully. =)
 """
-# TODO: make a clean way of exiting infinite mode
 # TODO: separate logic from presentation
 
 # ============================================================================ #
@@ -51,6 +50,7 @@ from tqdm import tqdm
 
 
 def main() -> int:
+	print()
 	print('         \\\\\\\\\\\\\\\\')
 	print('   ┌────────────────┐__')
 	print(' \\\\│ SHLAKOBL⎛⎞⎟⎠   │ °_\\')
@@ -67,7 +67,7 @@ def main() -> int:
 	# cachelist = read_cache(cachepath)
 	cachelist = []
 
-	print('Loading vocabulary...', end=' ')
+	# print('Loading vocabulary...', end=' ')
 
 	wlists = [[], []]
 	(wlists[0], wlists[1]) = read_infiles(args.infile, args.w1, args.w2)
@@ -79,11 +79,12 @@ def main() -> int:
 		                         args.capitalized,
 		                         args.phrases)
 
-	print('Done.')
+	# print('Done.')
 	print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
-	      len(wlists[0]) * len(wlists[1]), 'pairs to check.')
-	print('Starting search for overlapping substrings in word pairs...')
-
+	      len(wlists[0]) * len(wlists[1]), 'pairs to check')
+	print('Starting search for overlapping substrings in word pairs')
+	print('Press Ctrl-C to quit anytime')
+	print()
 	numblends = write_outfile(args.outfile,
 	                          wlists,
 	                          # cachelist,
@@ -312,62 +313,71 @@ def write_outfile(outfile,
 			                  smoothing=0.01,
 			                  dynamic_ncols=True,
 			                  unit='w',
-			                  desc='Word blends generated')
+			                  desc='Word blends generated',
+			                  colour='green')
 		else:
 			blend_pbar = tqdm(smoothing=0.01,
 			                  dynamic_ncols=True,
 			                  unit='w',
-			                  desc='Word blends generated')
+			                  desc='Word blends generated',
+			                  colour='green')
 
 		w_pbar = tqdm(wlists[0],
 		              smoothing=0.01,
 		              dynamic_ncols=True,
 		              unit='w',
-		              desc='First words processed')
+		              desc='First words processed',
+		              colour='green')
 
 		blends = dict()
 		blend_ctr = 0
 		w_ctr = 0
 		words = ['', '']
 
-		while w_ctr < len(wlists[0]) and (maxblends <= 0 or blend_ctr < maxblends):
+		try:
 
-			words[0] = wlists[0][w_ctr]
+			while w_ctr < len(wlists[0]) and (maxblends <= 0 or blend_ctr < maxblends):
 
-			for words[1] in tqdm(wlists[1],
-			                     leave=False,
-			                     dynamic_ncols=True,
-			                     unit='w',
-			                     desc='Current word vs. whole vocabulary'):
+				words[0] = wlists[0][w_ctr]
 
-				(startpos, depth), _, _ = check_pair((words[0], words[1]),
-				                                     mindepth,
-				                                     minfree)
-				if depth:
-					blend = blend_pair((words[0], words[1]),
-					                   startpos,
-					                   depth,
-					                   uppercase)
+				for words[1] in tqdm(wlists[1],
+				                     leave=False,
+				                     dynamic_ncols=True,
+				                     unit='w',
+				                     desc='Current word vs. whole vocabulary',
+				                     colour='green'):
 
-					if (blend not in (wlists[0] + wlists[1])) \
-					   and (blend.lower() not in (wlists[0] + wlists[1])) \
-					   and (blend not in blends):
-						blends[blend] = depth
-						# Dynamically write blended word into plain text file
-						# together with overlap depth (\n is auto-appended)
-						# TODO: argumentize output string format
-						# TODO: also save all data into cache
-						print(blend, file=outfile)
-						blend_ctr += 1
-						blend_pbar.update()
-						if blend_ctr >= maxblends:
-							break
+					(startpos, depth), _, _ = check_pair((words[0], words[1]),
+					                                     mindepth,
+					                                     minfree)
+					if depth:
+						blend = blend_pair((words[0], words[1]),
+						                   startpos,
+						                   depth,
+						                   uppercase)
 
-			w_ctr += 1
-			w_pbar.update()
+						if (blend not in (wlists[0] + wlists[1])) \
+						   and (blend.lower() not in (wlists[0] + wlists[1])) \
+						   and (blend not in blends):
+							blends[blend] = depth
+							# Dynamically write blended word into plain text file
+							# together with overlap depth (\n is auto-appended)
+							# TODO: argumentize output string format
+							# TODO: also save all data into cache
+							print(blend, file=outfile)
+							blend_ctr += 1
+							blend_pbar.update()
+							if blend_ctr >= maxblends:
+								break
 
-		w_pbar.close()
-		blend_pbar.close()
+				w_ctr += 1
+				w_pbar.update()
+
+			w_pbar.close()
+			blend_pbar.close()
+
+		except KeyboardInterrupt:
+			pass
 
 	return blend_ctr
 
