@@ -43,7 +43,7 @@ import os
 import random
 import sys
 from collections import namedtuple
-from io import TextIOWrapper
+# from io import TextIOWrapper
 from pathlib import Path
 
 from tqdm import tqdm
@@ -111,7 +111,7 @@ def parse_args() -> argparse.Namespace:
 
 	parser.add_argument('-i', '--infile',
 	                    nargs='*',
-	                    type=argparse.FileType('r'),
+	                    # type=argparse.FileType('r'),
 	                    default=(None if sys.stdin.isatty() else sys.stdin),
 	                    help='source vocabulary file[s] or dir[s] (default: stdin)')
 	parser.add_argument('-w1',
@@ -158,14 +158,11 @@ def parse_args() -> argparse.Namespace:
 	                    action='store_true',
 	                    help='also include multi-word phrases')
 
-	print(str(sys.stdin.isatty()))
-
-	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
+	args = parser.parse_args(args=None if (sys.argv[1:] or not sys.stdin.isatty())
+	                                   else ['--help'])
 
 	if not (args.infile or args.w1 or args.w2):
 		parser.error('No source vocabularies specified')
-
-	print(type(args.infile))
 
 	return args
 
@@ -204,21 +201,23 @@ def read_infiles(*pathstrs) -> tuple[list, list]:
 	"""
 	Get list of filenames for vocabulary file[s] and read their content.
 	"""
-	pathsets = [set(), set(), set()]    # [common, w1, w2]
-	for (pathset, pathstr) in zip(pathsets, pathstrs):
-		if type(pathstr) == list:
-			for path in pathstr:
-				if type(path) == str:
-					pathset |= pathstr2pathset(path)
-				elif type(path) == TextIOWrapper:
-					pathset |= pathstr2pathset(path.name)
-		elif type(pathstr) == str:
-			pathset = pathstr2pathset(pathstr)
+	if pathstrs[0] == sys.stdin:
+		wsets = [set(file2list(pathstrs[0])), set(), set()]
 
-	wsets = [set(), set(), set()]    # [common, w1, w2]
-	for (wset, pathset) in zip(wsets, pathsets):
-		for path in pathset:
-			wset |= set(file2list(path))
+	else:
+		pathsets = [set(), set(), set()]    # [common, w1, w2]
+		for (pathset, pathstr) in zip(pathsets, pathstrs):
+			if type(pathstr) == list:
+				for path in pathstr:
+					if type(path) == str:
+						pathset |= pathstr2pathset(path)
+			elif type(pathstr) == str:
+				pathset = pathstr2pathset(pathstr)
+
+		wsets = [set(), set(), set()]    # [common, w1, w2]
+		for (wset, pathset) in zip(wsets, pathsets):
+			for path in pathset:
+				wset |= set(file2list(path))
 
 	wlists = [[], []]
 	wlists[0] = sorted(wsets[0] | wsets[1])
@@ -253,24 +252,38 @@ def pathstr2pathset(pathstr: str) -> set[Path]:
 # ============================================================================ #
 
 
-def file2list(path: Path) -> list[str]:
+def file2list(path) -> list[str]:
 	"""
-	Import words from a single vocabulary file into a list.
+	Import words from a single vocabulary file or sys.stdin into a list.
 	"""
 	words = []
-	with path.open() as f:
-		for w in f:
-			if w:
-				# Strip whitespace characters from both ends. This is required,
-				# as reading a textfile includes trailing newline characters.
-				w = w.strip()
-				# Skip empty strings, comment lines, words with non-printables
-				if not w.isspace() \
-				   and (w[0] != '#') \
-				   and w.isprintable():
-					words.append(w)
+	if path == sys.stdin:
+		for w in path:
+			words.append(line2word(w))
+	else:
+		with path.open() as f:
+			for w in f:
+				words.append(line2word(w))
 
 	return words
+
+# ============================================================================ #
+
+
+def line2word(w: str) -> str:
+	"""
+	Strip whitespace characters from both ends. This is required,
+	as reading a textfile includes trailing newline characters.
+	Skip empty strings, comment lines, words with non-printables.
+	"""
+	w = w.strip()
+	if w \
+	   and not w.isspace() \
+	   and (w[0] != '#') \
+	   and w.isprintable():
+		return w
+	else:
+	 	return ''
 
 # ============================================================================ #
 
@@ -370,10 +383,10 @@ def write_outfile(outfile,
 						   and (blend not in blends):
 							blends[blend] = depth
 							# Dynamically write blended word into plaintext file
-							# (printing to textfiles auto-appends \n) or to console
+							# (print() auto-appends \n) or to sys.stdout
 							# TODO: argumentize output string format
 							# TODO: also save all data into cache
-							if outfile.name == '<stdout>':
+							if outfile == sys.stdout:
 								tqdm.write(blend, outfile)
 							else:
 								print(blend, file=outfile)
