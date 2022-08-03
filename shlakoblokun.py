@@ -34,6 +34,7 @@ It might be slightly confusing with multidimensional stuff, for example:
 	          but we don't go that deep, thankfully. =)
 """
 # TODO: separate logic from presentation
+# TODO: implement caching
 
 # ============================================================================ #
 
@@ -61,7 +62,6 @@ def main() -> int:
 
 	args = parse_args()
 
-	# TODO: implement caching
 	cachepath = Path('ru/.cache')
 	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
 	# cachelist = read_cache(cachepath)
