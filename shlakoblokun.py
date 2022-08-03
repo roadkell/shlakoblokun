@@ -43,7 +43,7 @@ import os
 import random
 import sys
 from collections import namedtuple
-# from io import TextIOWrapper
+# from io import TextIOWrapper      # only needed for type hints
 from pathlib import Path
 
 from tqdm import tqdm
@@ -60,6 +60,7 @@ def main() -> int:
 	print('   └────────────────┘')
 	print('  Portmanteau Generator')
 	print()
+	# print('Loading vocabulary...', end=' ')
 
 	args = parse_args()
 
@@ -67,8 +68,6 @@ def main() -> int:
 	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
 	# cachelist = read_cache(cachepath)
 	cachelist = []
-
-	# print('Loading vocabulary...', end=' ')
 
 	wlists = [[], []]
 	(wlists[0], wlists[1]) = read_infiles(args.infile, args.w1, args.w2)
@@ -255,16 +254,19 @@ def pathstr2pathset(pathstr: str) -> set[Path]:
 # ============================================================================ #
 
 
-def file2list(path) -> list[str]:
+def file2list(file) -> list[str]:
 	"""
 	Import words from a single vocabulary file or sys.stdin into a list.
+
+	file: TextIOWrapper (when sys.stdin) | Path (when -i)
 	"""
 	words = []
-	if path == sys.stdin:
-		for w in path:
+	# print('file type == ' + str(type(file)))
+	if file == sys.stdin:
+		for w in file:
 			words.append(line2word(w))
 	else:
-		with path.open() as f:
+		with file.open() as f:
 			for w in f:
 				words.append(line2word(w))
 
