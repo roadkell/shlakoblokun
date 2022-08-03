@@ -43,6 +43,7 @@ import os
 import random
 import sys
 from collections import namedtuple
+from io import TextIOWrapper
 from pathlib import Path
 
 from tqdm import tqdm
@@ -110,8 +111,9 @@ def parse_args() -> argparse.Namespace:
 
 	parser.add_argument('-i', '--infile',
 	                    nargs='*',
+	                    type=argparse.FileType('r'),
 	                    default=(None if sys.stdin.isatty() else sys.stdin),
-	                    help='source vocabulary file[s] or dir[s]')
+	                    help='source vocabulary file[s] or dir[s] (default: stdin)')
 	parser.add_argument('-w1',
 	                    nargs='*',
 	                    help='vocabulary file[s]/dir[s] to only source 1st words from')
@@ -122,7 +124,7 @@ def parse_args() -> argparse.Namespace:
 	                    nargs='?',
 	                    type=argparse.FileType('w'),
 	                    default=sys.stdout,
-	                    help='output file')
+	                    help='output file (default: stdout)')
 	parser.add_argument('-r', '--randomize',
 	                    action='store_true',
 	                    help='shuffle vocabulary, instead of going alphabetically')
@@ -156,10 +158,14 @@ def parse_args() -> argparse.Namespace:
 	                    action='store_true',
 	                    help='also include multi-word phrases')
 
+	print(str(sys.stdin.isatty()))
+
 	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
 	if not (args.infile or args.w1 or args.w2):
 		parser.error('No source vocabularies specified')
+
+	print(type(args.infile))
 
 	return args
 
@@ -181,7 +187,7 @@ def read_cache(cpath: Path) -> list:
 # ============================================================================ #
 
 
-def write_cache(cpath: Path, clist: list):
+def write_cache(cpath: Path, clist: list) -> int:
 	"""
 	Write list of CacheEntries back into cache file.
 	"""
@@ -202,7 +208,10 @@ def read_infiles(*pathstrs) -> tuple[list, list]:
 	for (pathset, pathstr) in zip(pathsets, pathstrs):
 		if type(pathstr) == list:
 			for path in pathstr:
-				pathset |= pathstr2pathset(path)
+				if type(path) == str:
+					pathset |= pathstr2pathset(path)
+				elif type(path) == TextIOWrapper:
+					pathset |= pathstr2pathset(path.name)
 		elif type(pathstr) == str:
 			pathset = pathstr2pathset(pathstr)
 
@@ -360,11 +369,14 @@ def write_outfile(outfile,
 						   and (blend.lower() not in (wlists[0] + wlists[1])) \
 						   and (blend not in blends):
 							blends[blend] = depth
-							# Dynamically write blended word into plain text file
-							# together with overlap depth (\n is auto-appended)
+							# Dynamically write blended word into plaintext file
+							# (printing to textfiles auto-appends \n) or to console
 							# TODO: argumentize output string format
 							# TODO: also save all data into cache
-							print(blend, file=outfile)
+							if outfile.name == '<stdout>':
+								tqdm.write(blend, outfile)
+							else:
+								print(blend, file=outfile)
 							blend_ctr += 1
 							blend_pbar.update()
 							if blend_ctr >= maxblends:
