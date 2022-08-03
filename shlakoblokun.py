@@ -207,12 +207,15 @@ def read_infiles(*pathstrs) -> tuple[list, list]:
 	else:
 		pathsets = [set(), set(), set()]    # [common, w1, w2]
 		for (pathset, pathstr) in zip(pathsets, pathstrs):
-			if type(pathstr) == list:
+			# nargs='*' always produce a list, even with one element,
+			# so typecheck here was redundant (existence check is needed though)
+			# if type(pathstr) == list:
+			if pathstr:
 				for path in pathstr:
-					if type(path) == str:
-						pathset |= pathstr2pathset(path)
-			elif type(pathstr) == str:
-				pathset = pathstr2pathset(pathstr)
+					# Again, typecheck was redundant, as path is always a str
+					pathset |= pathstr2pathset(path)
+			# elif type(pathstr) == str:
+				# pathset = pathstr2pathset(pathstr)
 
 		wsets = [set(), set(), set()]    # [common, w1, w2]
 		for (wset, pathset) in zip(wsets, pathsets):
