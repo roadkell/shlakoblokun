@@ -52,7 +52,7 @@ python3 shlakoblokun.py -i ru/nouns.txt -w2 ru/adjectives.txt ru/adverbs.txt ru/
 ```
 Здесь в качестве словаря для обоих слов указан файл `ru/nouns.txt`, в то время как `ru/adjectives.txt`, `ru/adverbs.txt`, `ru/verbs.txt` указаны как словари для второго слова. Т.е. при генерации словослияний первое слово будет браться из `ru/nouns.txt`, а второе - из всех перечисленных словарей.
 
-Словари извлечены из [дампа ру-Викисловаря](https://dumps.wikimedia.org/) с помощью https://github.com/roadkell/wiktio.
+Словари извлечены из [дампа ру-Викисловаря](https://dumps.wikimedia.org/) с помощью [wiktio](https://github.com/roadkell/wiktio).
 
 ### Важно ###
 
