@@ -93,8 +93,10 @@ python3 shlakoblokun.py -i ru/n.txt -w2 ru/adj.txt ru/adv.txt ru/v.txt -o output
 
 ### Лицензия ###
 
-[Hippocratic License 3.0](https://firstdonoharm.dev/)
+[Hippocratic License 3.0](https://firstdonoharm.dev/version/3/0/core.html)
 
 [Викисловарь](https://ru.wiktionary.org/): [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
+
+[tqdm](https://github.com/tqdm/tqdm): [MIT](https://github.com/tqdm/tqdm/blob/master/LICENCE)
 
 [^1]: Но это неточно
