@@ -52,17 +52,19 @@ from tqdm import tqdm
 
 
 def main() -> int:
-	print()
-	print('         \\\\\\\\\\\\\\\\')
-	print('   ┌────────────────┐__')
-	print(' \\\\│ SHLAKOBL⎛⎞⎟⎠   │ °_\\')
-	print(' //│         ⎝⎠⎟⎞UN │___/')
-	print('   └────────────────┘')
-	print('  Portmanteau Generator')
-	print()
-	# print('Loading vocabulary...', end=' ')
 
 	args = parse_args()
+
+	if args.outfile != sys.stdout:
+		print()
+		print('         \\\\\\\\\\\\\\\\')
+		print('   ┌────────────────┐__')
+		print(' \\\\│ SHLAKOBL⎛⎞⎟⎠   │ °_\\')
+		print(' //│         ⎝⎠⎟⎞UN │___/')
+		print('   └────────────────┘')
+		print('  Portmanteau Generator')
+		print()
+	# print('Loading vocabulary...', end=' ')
 
 	cachepath = Path('ru/.cache')
 	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
@@ -80,11 +82,12 @@ def main() -> int:
 		                         args.phrases)
 
 	# print('Done.')
-	print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
-	      len(wlists[0]) * len(wlists[1]), 'pairs to check')
-	print('Starting search for overlapping substrings in word pairs')
-	print('Press Ctrl-C to quit anytime')
-	print()
+	if args.outfile != sys.stdout:
+		print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
+		      len(wlists[0]) * len(wlists[1]), 'pairs to check')
+		print('Starting search for overlapping substrings in word pairs')
+		print('Press Ctrl-C to quit anytime')
+		print()
 	numblends = write_outfile(args.outfile,
 	                          wlists,
 	                          # cachelist,
