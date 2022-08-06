@@ -27,13 +27,13 @@
 
 ### Как ###
 
-1. Скачать содержимое репозитория любым удобным способом.
-2. Если не установлен Python 3 — [установить](https://www.python.org/downloads/).
-3. Запустить из командной строки с желаемыми опциями:
+0. Если не установлен Python 3 — [установить](https://www.python.org/downloads/).
+1. `pip install shlakoblokun`
+2. Запустить из командной строки с желаемыми опциями:
 ```
-python3 shlakoblokun.py [-h] [-i [INFILE ...]] [-w1 [W1 ...]] [-w2 [W2 ...]]
-                        [-o [OUTFILE]] [-r] [-n NUMBER] [-d DEPTH] [-f MINFREE]
-                        [-l MINLENGTH] [-L MAXLENGTH] [-u] [-c] [-p]
+shlakoblokun [-h] [-i [INFILE ...]] [-w1 [W1 ...]] [-w2 [W2 ...]]
+             [-o [OUTFILE]] [-r] [-n NUMBER] [-d DEPTH] [-f MINFREE]
+             [-l MINLENGTH] [-L MAXLENGTH] [-u] [-c] [-p]
 
 опции:
   -h, --help                              вывести подсказку и выйти;
@@ -59,14 +59,19 @@ python3 shlakoblokun.py [-h] [-i [INFILE ...]] [-w1 [W1 ...]] [-w2 [W2 ...]]
 
 Пример использования:
 ```
-python3 shlakoblokun.py -i ru/n.txt -w2 ru/adj.txt ru/adv.txt ru/v.txt -o output.txt
+shlakoblokun -i data/ru/n.txt -w2 data/ru/adj.txt data/ru/adv.txt data/ru/v.txt -o output.txt
 ```
-Здесь в качестве общего словаря указан файл `ru/n.txt` (существительные), в то время как `ru/adj.txt`, `ru/adv.txt`, `ru/v.txt` указаны как словари для второго слова. Т.е. при генерации словослияний первое слово будет браться из `ru/n.txt`, а второе — из всех перечисленных словарей.
+Здесь в качестве общего словаря указан файл `data/ru/n.txt` (существительные), в то время как `data/ru/adj.txt`, `data/ru/adv.txt`, `data/ru/v.txt` указаны как словари для второго слова. Т.е. при генерации словослияний первое слово будет браться из `data/ru/n.txt`, а второе — из всех перечисленных словарей.
+
+Того же результата можно добиться и проще:
+```
+shlakoblokun -w1 data/ru/n.txt -w2 data/ru/ -o output.txt
+```
 
 Примеры с `stdin` / `stdout`:
 ```
-cat input.txt | python3 shlakoblokun.py
-python3 shlakoblokun.py < input.txt > output.txt
+cat input.txt | shlakoblokun
+shlakoblokun < input.txt > output.txt
 ```
 
 Словари извлечены из [дампа ру-Викисловаря](https://dumps.wikimedia.org/) с помощью [wiktio](https://github.com/roadkell/wiktio).
