@@ -15,26 +15,31 @@ Arbitrary decision:
 	for all comparisons, so matching substrings might actually look different).
 
 Naming conventions:
-	...s    - suffix for plurals (sequence)
-	...ss   - suffix for 'sequence of 'sequence''
-	w       - word (ww, ws - words)
+	...s    - suffix for plurals ('sequence')
+	...ss   - suffix for 'sequence of 'sequence'' (2-dimensional)
+	w       - word (ws - words)
 	w...    - prefix for word
 	cfw     - casefolded word
 	cf...   - prefix for casefolded
-	ch      - character
-	f       - file (ff, fs - files)
-	p       - path (pp, ps - paths)
+	ch      - character (chs - characters)
+	f       - file (fs - files)
+	p       - path (ps - paths)
 
 It might be slightly confusing with multidimensional stuff, for example:
-	wlist   - list of word (i.e. a sequence itself, could also be 'ws' or 'ww');
-	wlists  - sequence of wlist (i.e. a sequence of list of word,
-	          2-dimensional sequence, could also be 'wss' or 'wws' or 'www');
+	wlist   - list of word (i.e. a sequence itself, could also be named 'ws');
+	wlists  - sequence of wlist (i.e. a sequence of 'list of 'word'',
+	          a 2-dimensional sequence, could also be named 'wss');
 	          and since word is a str (a sequence itself), its chars may be
 	          addressed as 'chsss' (3-dimensional sequence);
 	          but we don't go that deep, thankfully. =)
+
+Arg names and README address words as w1 & w2, but codewise
+they are zero-indexed (usually w[0] & w[1]).
 """
 # TODO: separate logic from presentation
 # TODO: implement caching
+# TODO: unspaghettize code, ffs
+# TODO: add -1or2, -1xor2 options for vocabularies
 
 # ============================================================================ #
 
@@ -64,7 +69,7 @@ def main() -> int:
 		print('   └────────────────┘')
 		print('  Portmanteau Generator')
 		print()
-	# print('Loading vocabulary...', end=' ')
+		# print('Loading vocabulary...', end=' ')
 
 	cachepath = Path('ru/.cache')
 	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
@@ -88,6 +93,7 @@ def main() -> int:
 		print('Starting search for overlapping substrings in word pairs')
 		print('Press Ctrl-C to quit anytime')
 		print()
+
 	numblends = write_outfile(args.outfile,
 	                          wlists,
 	                          # cachelist,
@@ -199,30 +205,30 @@ def write_cache(cpath: Path, clist: list) -> int:
 # ============================================================================ #
 
 
-def read_infiles(*pathstrs) -> tuple[list, list]:
+def read_infiles(*pstrs) -> tuple[list, list]:
 	"""
 	Get list of filenames for vocabulary file[s] and read their content.
 	"""
-	if pathstrs[0] == sys.stdin:
-		wsets = [set(file2list(pathstrs[0])), set(), set()]
+	if pstrs[0] == sys.stdin:
+		wsets = [set(file2list(pstrs[0])), set(), set()]
 
 	else:
-		pathsets = [set(), set(), set()]    # [common, w1, w2]
-		for (pathset, pathstr) in zip(pathsets, pathstrs):
+		psets = [set(), set(), set()]    # [common, w1, w2]
+		for (pset, pstr) in zip(psets, pstrs):
 			# nargs='*' always produce a list, even with one element,
 			# so typecheck here was redundant (existence check is needed though)
 			# if type(pathstr) == list:
-			if pathstr:
-				for path in pathstr:
+			if pstr:
+				for path in pstr:
 					# Again, typecheck was redundant, as path is always a str
-					pathset |= pathstr2pathset(path)
+					pset |= pstr2pset(path)
 			# elif type(pathstr) == str:
 				# pathset = pathstr2pathset(pathstr)
 
 		wsets = [set(), set(), set()]    # [common, w1, w2]
-		for (wset, pathset) in zip(wsets, pathsets):
-			for path in pathset:
-				wset |= set(file2list(path))
+		for (wset, pset) in zip(wsets, psets):
+			for p in pset:
+				wset |= set(file2list(p))
 
 	wlists = [[], []]
 	wlists[0] = sorted(wsets[0] | wsets[1])
@@ -233,13 +239,16 @@ def read_infiles(*pathstrs) -> tuple[list, list]:
 # ============================================================================ #
 
 
-def pathstr2pathset(pathstr: str) -> set[Path]:
+def pstr2pset(pstr: str) -> set[Path]:
 	"""
 	Unwrap a given nonempty path string into a set of absolute file paths.
+
+	Directories are not walked recursively.
+	TODO: use fileinput
 	"""
-	paths = set()
-	if pathstr:
-		path = Path(pathstr).resolve()
+	pset = set()
+	if pstr:
+		path = Path(pstr).resolve()
 		if path.is_dir():
 			for p in path.iterdir():
 				# Ignore empty, hidden, and temp files
@@ -247,12 +256,12 @@ def pathstr2pathset(pathstr: str) -> set[Path]:
 				   and not str(p).startswith('.') \
 				   and not str(p).endswith('~') \
 				   and (os.stat(p).st_size > 0):
-					paths.add(p)
+					pset.add(p)
 		elif path.is_file() and (os.stat(path).st_size > 0):
 			# If a path to a file is given, always read it, even if temp/hidden
-			paths.add(path)
+			pset.add(path)
 
-	return paths
+	return pset
 
 # ============================================================================ #
 
@@ -261,10 +270,9 @@ def file2list(file) -> list[str]:
 	"""
 	Import words from a single vocabulary file or sys.stdin into a list.
 
-	file: TextIOWrapper (when sys.stdin) | Path (when -i)
+	type(file): TextIOWrapper (when sys.stdin) or Path (when -i path)
 	"""
 	words = []
-	# print('file type == ' + str(type(file)))
 	if file == sys.stdin:
 		for w in file:
 			words.append(line2word(w))
@@ -282,7 +290,7 @@ def line2word(w: str) -> str:
 	"""
 	Strip whitespace characters from both ends. This is required,
 	as reading a textfile includes trailing newline characters.
-	Skip empty strings, comment lines, words with non-printables.
+	Then skip empty strings, comment lines, words with non-printables.
 	"""
 	w = w.strip()
 	if w \
