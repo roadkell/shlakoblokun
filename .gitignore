@@ -1,8 +1,7 @@
 .ignore/
+.profiling/
 **/input.txt
 **/output.txt
-**/profile
-**/profiler.py
 
 # gitignore template for VSCode
 
