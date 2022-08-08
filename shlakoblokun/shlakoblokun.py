@@ -76,26 +76,30 @@ def main() -> int:
 	# cachelist = read_cache(cachepath)
 	cachelist = []
 
-	wlists = [[], []]
-	(wlists[0], wlists[1]) = read_infiles(args.infile, args.w1, args.w2)
+	wlists = read_infiles(args.infile, args.w1, args.w2)
 
-	for (i, wlist) in enumerate(wlists):
-		wlists[i] = filter_words(wlist,
-		                         args.randomize,
-		                         args.minlength,
-		                         args.capitalized,
-		                         args.phrases)
+	# for (i, wlist) in enumerate(wlists):
+	fwlists = (filter_words(wlists[0],
+	                        args.randomize,
+	                        args.minlength,
+	                        args.capitalized,
+	                        args.phrases),
+	           filter_words(wlists[1],
+	                        args.randomize,
+	                        args.minlength,
+	                        args.capitalized,
+	                        args.phrases))
 
 	# print('Done.')
 	if args.outfile != sys.stdout:
-		print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
-		      len(wlists[0]) * len(wlists[1]), 'pairs to check')
+		print(len(fwlists[0]) + len(fwlists[1]), 'words loaded,',
+		      len(fwlists[0]) * len(fwlists[1]), 'pairs to check')
 		print('Starting search for overlapping substrings in word pairs')
 		print('Press Ctrl-C to quit anytime')
 		print()
 
 	numblends = write_outfile(args.outfile,
-	                          wlists,
+	                          fwlists,
 	                          # cachelist,
 	                          args.number,
 	                          args.depth,
@@ -170,7 +174,7 @@ def parse_args() -> argparse.Namespace:
 	                                   else ['--help'])
 
 	if not (args.infile or args.w1 or args.w2):
-		parser.error('No source vocabularies specified')
+		parser.error('no source vocabularies specified')
 
 	return args
 
@@ -205,15 +209,15 @@ def write_cache(cpath: Path, clist: list) -> int:
 # ============================================================================ #
 
 
-def read_infiles(*pstrs) -> tuple[list, list]:
+def read_infiles(*pstrs) -> tuple[list[str], list[str]]:
 	"""
 	Get list of filenames for vocabulary file[s] and read their content.
 	"""
 	if pstrs[0] == sys.stdin:
-		wsets = [set(file2list(pstrs[0])), set(), set()]
+		wsets = (set(file2list(pstrs[0])), set(), set())
 
 	else:
-		psets = [set(), set(), set()]    # [common, w1, w2]
+		psets = (set(), set(), set())    # (common, w1, w2)
 		for (pset, pstr) in zip(psets, pstrs):
 			# nargs='*' always produce a list, even with one element,
 			# so typecheck here was redundant (existence check is needed though)
@@ -225,16 +229,15 @@ def read_infiles(*pstrs) -> tuple[list, list]:
 			# elif type(pathstr) == str:
 				# pathset = pathstr2pathset(pathstr)
 
-		wsets = [set(), set(), set()]    # [common, w1, w2]
+		wsets = (set(), set(), set())    # (common, w1, w2)
 		for (wset, pset) in zip(wsets, psets):
 			for p in pset:
 				wset |= set(file2list(p))
 
-	wlists = [[], []]
-	wlists[0] = sorted(wsets[0] | wsets[1])
-	wlists[1] = sorted(wsets[0] | wsets[2])
+	wlists = (sorted(wsets[0] | wsets[1]),
+	          sorted(wsets[0] | wsets[2]))
 
-	return (wlists[0], wlists[1])
+	return wlists
 
 # ============================================================================ #
 
@@ -328,7 +331,7 @@ def filter_words(words: list,
 
 
 def write_outfile(outfile,
-                  wlists: list[list[str]],
+                  wlists: tuple[list[str], list[str]],
                   # cachelist,
                   maxblends: int,
                   mindepth: int,
@@ -444,9 +447,7 @@ def check_pair(ws: tuple[str, str],
 	trying to calculate proper startpos & depth.
 	https://stackoverflow.com/questions/319426/how-do-i-do-a-case-insensitive-string-comparison
 	"""
-	cfws = []
-	for w in ws:
-		cfws.append(w.casefold())
+	cfws = (ws[0].casefold(), ws[1].casefold())
 
 	for i in range(minfree, len(cfws[0]) - (mindepth-1)):
 
