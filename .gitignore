@@ -1,5 +1,7 @@
-.ignore/
-.profiling/
+*.ignore/
+*.profiling/
+*.build/
+*.dist/
 **/input.txt
 **/output.txt
 
