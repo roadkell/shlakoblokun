@@ -15,7 +15,7 @@ Arbitrary decision:
 	for all comparisons, so matching substrings might actually look different).
 
 Naming conventions:
-	...s    - suffix for plurals ('sequence')
+	...s    - suffix for plurals (sequence types)
 	...ss   - suffix for 'sequence of 'sequence'' (2-dimensional)
 	w       - word (ws - words)
 	w...    - prefix for word
@@ -34,12 +34,13 @@ It might be slightly confusing with multidimensional stuff, for example:
 	          but we don't go that deep, thankfully. =)
 
 Arg names and README address words as w1 & w2, but codewise
-they are zero-indexed (usually w[0] & w[1]).
+they are zero-indexed (w[0], w[1]).
 """
 # TODO: separate logic from presentation
 # TODO: implement caching
-# TODO: unspaghettize code, ffs
+# TODO: unspaghettize code
 # TODO: add -1or2, -1xor2 options for vocabularies
+# TODO: maybe replace argparse with click
 
 # ============================================================================ #
 
@@ -48,7 +49,7 @@ import os
 import random
 import sys
 from collections import namedtuple
-# from io import TextIOWrapper      # only needed for type hints
+# from io import TextIOWrapper      # only needed for type hint in line2str
 from pathlib import Path
 
 from tqdm import tqdm
@@ -71,14 +72,13 @@ def main() -> int:
 		print()
 		# print('Loading vocabulary...', end=' ')
 
-	cachepath = Path('ru/.cache')
+	cachepath = Path('.cache')
 	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
 	# cachelist = read_cache(cachepath)
 	cachelist = []
 
 	wlists = read_infiles(args.infile, args.w1, args.w2)
 
-	# for (i, wlist) in enumerate(wlists):
 	fwlists = (filter_words(wlists[0],
 	                        args.randomize,
 	                        args.minlength,
@@ -123,7 +123,6 @@ def parse_args() -> argparse.Namespace:
 
 	parser.add_argument('-i', '--infile',
 	                    nargs='*',
-	                    # type=argparse.FileType('r'),
 	                    default=(None if sys.stdin.isatty() else sys.stdin),
 	                    help='source vocabulary file[s] or dir[s] (default: stdin)')
 	parser.add_argument('-w1',
@@ -165,7 +164,7 @@ def parse_args() -> argparse.Namespace:
 	                    help='uppercase overlapping characters in the output ("reVENGEance")')
 	parser.add_argument('-c', '--capitalized',
 	                    action='store_true',
-	                    help='also include Capitalized words (proper names / abbreviations)')
+	                    help='also include capitalized words (proper names / abbreviations)')
 	parser.add_argument('-p', '--phrases',
 	                    action='store_true',
 	                    help='also include multi-word phrases')
@@ -185,7 +184,7 @@ def read_cache(cpath: Path) -> list:
 	"""
 	Read cache file into a list of CacheEntries.
 	"""
-	# TODO: use CSV
+	# TODO: use CSV/TSV
 	clist = []
 	with cpath.open() as f:
 		for centry in f:
@@ -200,7 +199,7 @@ def write_cache(cpath: Path, clist: list) -> int:
 	"""
 	Write list of CacheEntries back into cache file.
 	"""
-	# TODO: use CSV
+	# TODO: use CSV/TSV
 	with cpath.open(mode='r+') as f:
 		pass
 
@@ -212,6 +211,8 @@ def write_cache(cpath: Path, clist: list) -> int:
 def read_infiles(*pstrs) -> tuple[list[str], list[str]]:
 	"""
 	Get list of filenames for vocabulary file[s] and read their content.
+
+	TODO: use fileinput
 	"""
 	if pstrs[0] == sys.stdin:
 		wsets = (set(file2list(pstrs[0])), set(), set())
@@ -220,14 +221,11 @@ def read_infiles(*pstrs) -> tuple[list[str], list[str]]:
 		psets = (set(), set(), set())    # (common, w1, w2)
 		for (pset, pstr) in zip(psets, pstrs):
 			# nargs='*' always produce a list, even with one element,
-			# so typecheck here was redundant (existence check is needed though)
-			# if type(pathstr) == list:
+			# so typechecking here is redundant (existence check is needed though)
 			if pstr:
 				for path in pstr:
-					# Again, typecheck was redundant, as path is always a str
+					# Again, typechecking iss redundant, as path is always a str
 					pset |= pstr2pset(path)
-			# elif type(pathstr) == str:
-				# pathset = pathstr2pathset(pathstr)
 
 		wsets = (set(), set(), set())    # (common, w1, w2)
 		for (wset, pset) in zip(wsets, psets):
@@ -291,18 +289,20 @@ def file2list(file) -> list[str]:
 
 def line2word(w: str) -> str:
 	"""
-	Strip whitespace characters from both ends. This is required,
-	as reading a textfile includes trailing newline characters.
-	Then skip empty strings, comment lines, words with non-printables.
+	Convert a line from a text file into a word
+
+	Remove inline comments, then strip whitespace characters from both ends.
+	This is required, as reading a textfile includes trailing newline chars.
+	Then skip empty strings and words with non-printable chars.
+	No need to check w for existence on load, as it is always a string.
+	But after stripping newlines it may become empty.
+	Empty string is considered printable by str.isprintable().
 	"""
-	w = w.strip()
-	if w \
-	   and not w.isspace() \
-	   and (w[0] != '#') \
-	   and w.isprintable():
+	w = w.partition('#')[0].strip()
+	if w.isprintable():
 		return w
 	else:
-	 	return ''
+		return ''
 
 # ============================================================================ #
 
