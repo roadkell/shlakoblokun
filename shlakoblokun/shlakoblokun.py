@@ -49,7 +49,7 @@ import os
 import random
 import sys
 from collections import namedtuple
-# from io import TextIOWrapper      # only needed for type hint in line2str
+# from io import TextIOWrapper      # only needed for type hints
 from pathlib import Path
 
 from tqdm import tqdm
@@ -77,14 +77,14 @@ def main() -> int:
 	# cachelist = read_cache(cachepath)
 	cachelist = []
 
-	wlists = read_infiles(args.infile, args.w1, args.w2)
+	wsets = read_infiles(args.infile, args.w1, args.w2)
 
-	fwlists = (filter_words(wlists[0],
+	wlists = (filter_words(wsets[0],
 	                        args.randomize,
 	                        args.minlength,
 	                        args.capitalized,
 	                        args.phrases),
-	           filter_words(wlists[1],
+	           filter_words(wsets[1],
 	                        args.randomize,
 	                        args.minlength,
 	                        args.capitalized,
@@ -92,14 +92,14 @@ def main() -> int:
 
 	# print('Done.')
 	if args.outfile != sys.stdout:
-		print(len(fwlists[0]) + len(fwlists[1]), 'words loaded,',
-		      len(fwlists[0]) * len(fwlists[1]), 'pairs to check')
+		print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
+		      len(wlists[0]) * len(wlists[1]), 'pairs to check')
 		print('Starting search for overlapping substrings in word pairs')
 		print('Press Ctrl-C to quit anytime')
 		print()
 
 	numblends = write_outfile(args.outfile,
-	                          fwlists,
+	                          wlists,
 	                          # cachelist,
 	                          args.number,
 	                          args.depth,
@@ -208,14 +208,16 @@ def write_cache(cpath: Path, clist: list) -> int:
 # ============================================================================ #
 
 
-def read_infiles(*pstrs) -> tuple[list[str], list[str]]:
+def read_infiles(*pstrs) -> tuple[set[str], set[str]]:
 	"""
 	Get list of filenames for vocabulary file[s] and read their content.
 
+	Input: values of -i, -w1, -w2 options.
+	Return: 2 sets, for 1st and 2nd word to take words from.
 	TODO: use fileinput
 	"""
 	if pstrs[0] == sys.stdin:
-		wsets = (set(file2list(pstrs[0])), set(), set())
+		wsets = (file2wset(pstrs[0]), set(), set())
 
 	else:
 		psets = (set(), set(), set())    # (common, w1, w2)
@@ -230,12 +232,13 @@ def read_infiles(*pstrs) -> tuple[list[str], list[str]]:
 		wsets = (set(), set(), set())    # (common, w1, w2)
 		for (wset, pset) in zip(wsets, psets):
 			for p in pset:
-				wset |= set(file2list(p))
+				wset |= file2wset(p)
 
-	wlists = (sorted(wsets[0] | wsets[1]),
-	          sorted(wsets[0] | wsets[2]))
+	# wlists = (sorted(wsets[0] | wsets[1]),
+	#          sorted(wsets[0] | wsets[2]))
 
-	return wlists
+	return ((wsets[0] | wsets[1]),
+	        (wsets[0] | wsets[2]))
 
 # ============================================================================ #
 
@@ -252,7 +255,7 @@ def pstr2pset(pstr: str) -> set[Path]:
 		path = Path(pstr).resolve()
 		if path.is_dir():
 			for p in path.iterdir():
-				# Ignore empty, hidden, and temp files
+				# Ignore empty, hidden, and temp files (by POSIX definition)
 				if not p.is_dir() \
 				   and not str(p).startswith('.') \
 				   and not str(p).endswith('~') \
@@ -267,20 +270,20 @@ def pstr2pset(pstr: str) -> set[Path]:
 # ============================================================================ #
 
 
-def file2list(file) -> list[str]:
+def file2wset(file) -> set[str]:
 	"""
-	Import words from a single vocabulary file or sys.stdin into a list.
+	Import words from a single vocabulary file or sys.stdin into a set.
 
 	type(file): TextIOWrapper (when sys.stdin) or Path (when -i path)
 	"""
-	words = []
+	words = set()
 	if file == sys.stdin:
 		for w in file:
-			words.append(line2word(w))
+			words.add(line2word(w))
 	else:
 		with file.open() as f:
 			for w in f:
-				words.append(line2word(w))
+				words.add(line2word(w))
 
 	return words
 
@@ -307,13 +310,13 @@ def line2word(w: str) -> str:
 # ============================================================================ #
 
 
-def filter_words(words: list,
+def filter_words(words: set[str],
                  do_randomize: bool,
                  minlen: int,
                  incl_capitalized: bool,
                  incl_phrases: bool) -> list[str]:
 	"""
-	Filter word list according to given arguments.
+	Filter word set according to given arguments. Return a list of words.
 	"""
 	outwords = []
 	for w in words:
@@ -324,6 +327,8 @@ def filter_words(words: list,
 
 	if do_randomize:
 		random.shuffle(outwords)
+	else:
+		outwords.sort()
 
 	return outwords
 
@@ -370,7 +375,9 @@ def write_outfile(outfile,
 		              desc='First words processed',
 		              colour='green')
 
-		blends = dict()
+		inwords = set(wlists[0] + wlists[1])
+		# blends = dict()
+		blends = set()
 		blend_ctr = 0
 		w_ctr = 0
 		words = ['', '']
@@ -388,19 +395,21 @@ def write_outfile(outfile,
 				                     desc='Current word vs. whole vocabulary',
 				                     colour='green'):
 
-					(startpos, depth), _, _ = check_pair((words[0], words[1]),
+					(startpos, depth), _, _ = check_pair(tuple(words),
 					                                     mindepth,
 					                                     minfree)
 					if depth:
-						blend = blend_pair((words[0], words[1]),
+						blend = blend_pair(tuple(words),
 						                   startpos,
 						                   depth,
 						                   uppercase)
 
-						if (blend not in (wlists[0] + wlists[1])) \
-						   and (blend.lower() not in (wlists[0] + wlists[1])) \
+						# An ugly way of checking if blend exists in inword set
+						if (blend not in inwords) \
+						   and (blend.lower() not in inwords) \
 						   and (blend not in blends):
-							blends[blend] = depth
+							blends.add(blend)
+							# blends[blend] = depth
 							# Dynamically write blended word into plaintext file
 							# (print() auto-appends \n) or to sys.stdout
 							# TODO: argumentize output string format
@@ -431,15 +440,15 @@ def write_outfile(outfile,
 def check_pair(ws: tuple[str, str],
                mindepth: int,
                minfree: int) -> tuple[tuple[int, int],
-                                      tuple[str, str],
-                                      tuple[int, int]]:
+                                      tuple[int, int],
+                                      tuple[str, str]]:
 	"""
 	Check word pair for blendability.
 
 	Returns a tuple of:
 		- tuple (startpos, depth)
-		- tuple (w[0].casefold(), w[1].casefold())
 		- tuple (cfstartpos, cfdepth)
+		- tuple (w[0].casefold(), w[1].casefold())
 	Note: this algorithm uses casefold() string comparison, which, for some
 	chars (like ß), changes word length (and, consequently, char indices).
 	Even more, for some languages unicodedata.normalize('NFKD', str)
@@ -465,7 +474,7 @@ def check_pair(ws: tuple[str, str],
 				for (i, ch) in enumerate(ws[0]):
 					chlensum += len(ch.casefold())
 					if chlensum >= cfstartpos:
-						startpos = i + 1    # may or may not be = cfstartpos
+						startpos = i + 1    # may or may not be == cfstartpos
 						break
 					# elif chlensum > cfstartpos:
 						# a complex case when blend starts inside a compound
@@ -482,7 +491,7 @@ def check_pair(ws: tuple[str, str],
 				for (i, ch) in enumerate(ws[1]):
 					chlensum += len(ch.casefold())
 					if chlensum >= cfdepth:
-						depth = i + 1       # may or may not be = cfdepth
+						depth = i + 1       # may or may not be == cfdepth
 						break
 					# elif chlensum > cfdepth:
 						# a complex case when blend ends inside a compound
@@ -494,10 +503,10 @@ def check_pair(ws: tuple[str, str],
 
 			# After a match is found, exit for loop (this pair is done)
 			return ((startpos, depth),
-			        (cfws[0], cfws[1]),
-			        (cfstartpos, cfdepth))
+			        (cfstartpos, cfdepth),
+			        tuple(cfws))
 
-	return ((0, 0), ('', ''), (0, 0))
+	return ((0, 0), (0, 0), ('', ''))
 
 # ============================================================================ #
 
