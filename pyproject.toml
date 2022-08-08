@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools", "setuptools_scm[toml]"]
+requires = ["setuptools", "setuptools-git-versioning"]
+# requires = ["setuptools", "setuptools_scm[toml]"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,20 +9,22 @@ authors = [
 	{ name = "Kelly Roadkill", email = "4406611+roadkell@users.noreply.github.com" },
 ]
 description = "Шлакоблокунь: генератор смешных (нет) словослияний"
+license = { text = "Hippocratic License 3.0" }
 readme = "README.md"
-license = { file = "LICENSE" }
 keywords = ["cli", "russian"]
 classifiers = [
 	"Development Status :: 2 - Pre-Alpha",
 	"Environment :: Console",
 	"Intended Audience :: End Users/Desktop",
-	"License :: Free To Use But Restricted, Hippocratic License 3.0",
+	"License :: Free To Use But Restricted",
 	"Natural Language :: Russian",
 	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3 :: Only",
 	"Operating System :: OS Independent",
 	"Topic :: Games/Entertainment",
 ]
 dynamic = ["version"]
+dependencies = ["tqdm"]
 
 [project.urls]
 "Homepage" = "https://github.com/roadkell/shlakoblokun"
@@ -33,8 +36,8 @@ shlakoblokun = "shlakoblokun.shlakoblokun:main"
 [tool.setuptools.package-data]
 "shlakoblokun.data" = ["**/*.txt"]
 
-[tool.setuptools_scm]
+# [tool.setuptools_scm]
 
-# [tool.setuptools-git-versioning]
-# enabled = true
-# starting_version = "0.1.0"
+[tool.setuptools-git-versioning]
+enabled = true
+starting_version = "0.1.0"
