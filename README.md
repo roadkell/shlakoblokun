@@ -74,7 +74,7 @@ cat input.txt | shlakoblokun
 shlakoblokun < input.txt > output.txt
 ```
 
-Словари извлечены из [дампа ру-Викисловаря](https://dumps.wikimedia.org/) с помощью [wiktio](https://github.com/roadkell/wiktio).
+Словари извлечены из [дампа ру-Викисловаря](https://dumps.wikimedia.org/) с помощью [wiktiny](https://github.com/roadkell/wiktiny).
 
 ### Важно ###
 
