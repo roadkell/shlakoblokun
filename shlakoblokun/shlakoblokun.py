@@ -119,7 +119,7 @@ def parse_args() -> argparse.Namespace:
 	"""
 	Parse command line arguments. Print help when invoked without args.
 	"""
-	parser = argparse.ArgumentParser()
+	parser = argparse.ArgumentParser(prog='python3 shlakoblokun.py')
 
 	parser.add_argument('-i', '--infile',
 	                    nargs='*',
