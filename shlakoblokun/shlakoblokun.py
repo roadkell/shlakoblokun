@@ -35,22 +35,26 @@ It might be slightly confusing with multidimensional stuff, for example:
 
 Arg names and README address words as w1 & w2, but codewise
 they are zero-indexed (w[0], w[1]).
+
+TODO: separate logic from presentation
+TODO: implement caching
+TODO: unspaghettize code
+TODO: add -1or2, -1xor2 options for vocabularies
+TODO: maybe replace argparse with click
+TODO: add a denylist file of common suffixes for each language ('-ий', '-ть'),
+to ignore blends generated upon them
 """
-# TODO: separate logic from presentation
-# TODO: implement caching
-# TODO: unspaghettize code
-# TODO: add -1or2, -1xor2 options for vocabularies
-# TODO: maybe replace argparse with click
 
 # ============================================================================ #
 
 import argparse
+import fileinput
 import os
 import random
 import sys
-from collections import namedtuple
-# from io import TextIOWrapper      # only needed for type hints
-from pathlib import Path
+# from collections import namedtuple
+from io import TextIOWrapper    # for type annotation in files2words()
+from typing import Iterable
 
 from tqdm import tqdm
 
@@ -72,25 +76,27 @@ def main() -> int:
 		print()
 		# print('Loading vocabulary...', end=' ')
 
-	cachepath = Path('.cache')
-	CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
+	# cachepath = Path('.cache')
+	# CacheEntry = namedtuple('CacheEntry', ['w1', 'w2', 'blend', 'start', 'depth'])
 	# cachelist = read_cache(cachepath)
-	cachelist = []
+	# cachelist = []
 
 	wsets = read_infiles(args.infile, args.w1, args.w2)
 
 	wlists = (filter_words(wsets[0],
-	                        args.randomize,
-	                        args.minlength,
-	                        args.capitalized,
-	                        args.phrases),
-	           filter_words(wsets[1],
-	                        args.randomize,
-	                        args.minlength,
-	                        args.capitalized,
-	                        args.phrases))
+	                       args.randomize,
+	                       args.minlength,
+	                       args.capitalized,
+	                       args.phrases),
+	          filter_words(wsets[1],
+	                       args.randomize,
+	                       args.minlength,
+	                       args.capitalized,
+	                       args.phrases))
 
-	# print('Done.')
+	# exwords = file2wset(pstr2pset(args.exclude_overlaps)
+	# print(exwords)
+
 	if args.outfile != sys.stdout:
 		print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
 		      len(wlists[0]) * len(wlists[1]), 'pairs to check')
@@ -118,19 +124,27 @@ def main() -> int:
 def parse_args() -> argparse.Namespace:
 	"""
 	Parse command line arguments. Print help when invoked without args.
+
+	Infile can be one or many files, one or many dirs, or sys.stdin (default).
 	"""
 	parser = argparse.ArgumentParser(prog='python3 shlakoblokun.py')
 
 	parser.add_argument('-i', '--infile',
 	                    nargs='*',
 	                    default=(None if sys.stdin.isatty() else sys.stdin),
-	                    help='source vocabulary file[s] or dir[s] (default: stdin)')
+	                    help='source vocabulary file[s] or dir (default: stdin)')
 	parser.add_argument('-w1',
 	                    nargs='*',
-	                    help='vocabulary file[s]/dir[s] to only source 1st words from')
+	                    help='vocabulary file[s]/dir to only source 1st words from')
 	parser.add_argument('-w2',
 	                    nargs='*',
-	                    help='vocabulary file[s]/dir[s] to only source 2nd words from')
+	                    help='vocabulary file[s]/dir to only source 2nd words from')
+	parser.add_argument('-e', '--exclude-overlaps',
+	                    nargs='?',
+	                    type=argparse.FileType('r'),
+	                    # default=sys.stdout,
+	                    help="textfile with subwords that shouldn't be used as overlaps \
+	                    (usually common suffixes) (default: %(default)s)")
 	parser.add_argument('-o', '--outfile',
 	                    nargs='?',
 	                    type=argparse.FileType('w'),
@@ -172,7 +186,7 @@ def parse_args() -> argparse.Namespace:
 	args = parser.parse_args(args=None if (sys.argv[1:] or not sys.stdin.isatty())
 	                                   else ['--help'])
 
-	if not (args.infile or args.w1 or args.w2):
+	if not (args.infile or args.w1 and args.w2):
 		parser.error('no source vocabularies specified')
 
 	return args
@@ -180,62 +194,61 @@ def parse_args() -> argparse.Namespace:
 # ============================================================================ #
 
 
-def read_cache(cpath: Path) -> list:
-	"""
-	Read cache file into a list of CacheEntries.
-	"""
-	# TODO: use CSV/TSV
-	clist = []
-	with cpath.open() as f:
-		for centry in f:
-			clist.append(centry)
+# def read_cache(cpath: Path) -> list:
+# 	"""
+# 	Read cache file into a list of CacheEntries.
+# 	"""
+# 	# TODO: use CSV/TSV
+# 	clist = []
+# 	with cpath.open() as f:
+# 		for centry in f:
+# 			clist.append(centry)
 
-	return clist
-
-# ============================================================================ #
-
-
-def write_cache(cpath: Path, clist: list) -> int:
-	"""
-	Write list of CacheEntries back into cache file.
-	"""
-	# TODO: use CSV/TSV
-	with cpath.open(mode='r+') as f:
-		pass
-
-	return 0
+# 	return clist
 
 # ============================================================================ #
 
 
-def read_infiles(*pstrs) -> tuple[set[str], set[str]]:
+# def write_cache(cpath: Path, clist: list) -> int:
+# 	"""
+# 	Write list of CacheEntries back into cache file.
+# 	"""
+# 	# TODO: use CSV/TSV
+# 	with cpath.open(mode='r+') as f:
+# 		pass
+
+# 	return 0
+
+# ============================================================================ #
+
+
+def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 	"""
-	Get list of filenames for vocabulary file[s] and read their content.
+	Read vocabulary file[s], return sets of words to blend.
 
-	Input: values of -i, -w1, -w2 options.
-	Return: 2 sets, for 1st and 2nd word to take words from.
-	TODO: use fileinput
+	Args:
+		values of -i, -w1, -w2 options (some can be None)
+
+	Returns:
+		tuple: of 2 sets, for 1st and 2nd word to take words from
 	"""
-	if pstrs[0] == sys.stdin:
-		wsets = (file2wset(pstrs[0]), set(), set())
 
-	else:
-		psets = (set(), set(), set())    # (common, w1, w2)
-		for (pset, pstr) in zip(psets, pstrs):
-			# nargs='*' always produce a list, even with one element,
-			# so typechecking here is redundant (existence check is needed though)
-			if pstr:
-				for path in pstr:
-					# Again, typechecking iss redundant, as path is always a str
-					pset |= pstr2pset(path)
+	# if pstrs[0] == sys.stdin:
+	# 	wsets = (file2wset(pstrs[0]), set(), set())
 
-		wsets = (set(), set(), set())    # (common, w1, w2)
-		for (wset, pset) in zip(wsets, psets):
-			for p in pset:
-				wset |= file2wset(p)
+	# else:
+	# 	psets = (set(), set(), set())    # (common, w1, w2)
+	# 	for (pset, pstr) in zip(psets, pstrs):
 
-	# wlists = (sorted(wsets[0] | wsets[1]),
-	#          sorted(wsets[0] | wsets[2]))
+	# 		if pstr:
+	# 			for path in pstr:
+	# 				# Again, typechecking is redundant, as path is always a str
+	# 				pset |= pstr2pset(path)
+
+	files = (infile, w1, w2)
+	wsets = (set(), set(), set())    # (common, w1, w2)
+	for (wset, file) in zip(wsets, files):
+		wset |= files2words(file)
 
 	return ((wsets[0] | wsets[1]),
 	        (wsets[0] | wsets[2]))
@@ -243,64 +256,133 @@ def read_infiles(*pstrs) -> tuple[set[str], set[str]]:
 # ============================================================================ #
 
 
-def pstr2pset(pstr: str) -> set[Path]:
+def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 	"""
-	Unwrap a given nonempty path string into a set of absolute file paths.
+	Read lines from vocabulary file[s] or sys.stdin into a set.
 
-	Directories are not walked recursively.
-	TODO: use fileinput
+	Args:
+		infiles: can be anything fileinput.input() accepts:
+		- str
+		- os.PathLike
+		- iterable (can be empty)
+		- None (but os.isdir() and fileinput.input() would throw errors)
+
+		Since nargs='*' always produce a list, except for when no arg is given,
+		infiles will always be either a list[str], or None, or
+		(in case of sys.stdin) io.TextIOWrapper.
+
+		If it is a directory, all files from it (excluding hidden and temporary)
+		will be read non-recursively. Multiple dirs can be given too.
+
+		If multiple files are given, they'll be read, regardless of hidden/temp
+		status.
+
+	Returns:
+		set: of words from all files.
 	"""
-	pset = set()
-	if pstr:
-		path = Path(pstr).resolve()
-		if path.is_dir():
-			for p in path.iterdir():
-				# Ignore empty, hidden, and temp files (by POSIX definition)
-				if not p.is_dir() \
-				   and not str(p).startswith('.') \
-				   and not str(p).endswith('~') \
-				   and (os.stat(p).st_size > 0):
-					pset.add(p)
-		elif path.is_file() and (os.stat(path).st_size > 0):
-			# If a path to a file is given, always read it, even if temp/hidden
-			pset.add(path)
 
-	return pset
+	words = set()
+
+	if infiles:
+
+		#print("type(infiles) == " + str(type(infiles)))
+		# for infile in infiles:
+		#	print("type(infile) == " + str(type(infile)))
+
+		if infiles is sys.stdin:
+
+			for w in infiles:
+				words.add(line2word(w))
+
+			return words
+
+		else:
+
+			outfiles = set()    # of type: str | os.DirEntry
+
+			if not isinstance(infiles, str) \
+			 and isinstance(infiles, Iterable):
+
+				for file in infiles:
+					if file:
+						if os.path.isdir(file):
+							outfiles |= dir2files(file)
+						else:
+							outfiles.add(file)
+
+			elif os.path.isdir(infiles):
+				outfiles = dir2files(infiles)
+
+			else:
+				outfiles = infiles
+
+			with fileinput.input(outfiles) as f:
+				for w in f:
+					words.add(line2word(w))
+
+			return words
+
+	else:
+		return words
 
 # ============================================================================ #
 
 
-def file2wset(file) -> set[str]:
+def dir2files(dir: str) -> set[os.DirEntry]:
 	"""
-	Import words from a single vocabulary file or sys.stdin into a set.
-
-	type(file): TextIOWrapper (when sys.stdin) or Path (when -i path)
+	List all files in a directory, excluding hidden and temporary (POSIX-like).
 	"""
-	words = set()
-	if file == sys.stdin:
-		for w in file:
-			words.add(line2word(w))
-	else:
-		with file.open() as f:
-			for w in f:
-				words.add(line2word(w))
 
-	return words
+	files = set()
+
+	if dir:
+		with os.scandir(dir) as it:
+			for entry in it:
+				if not entry.name.startswith('.') \
+				and not entry.name.endswith('~') \
+				and entry.is_file():
+					files.add(entry)
+
+	return files
+
+# ============================================================================ #
+
+
+# def file2wset(file) -> set[str]:
+# 	"""
+# 	Import words from a single vocabulary file or sys.stdin into a set.
+
+# 	type(file): TextIOWrapper (when sys.stdin) or Path (when -i path)
+# 	"""
+# 	words = set()
+# 	if file:
+# 		if file == sys.stdin:
+# 			for w in file:
+# 				words.add(line2word(w))
+# 		else:
+# 			with file.open() as f:
+# 				for w in f:
+# 					words.add(line2word(w))
+
+# 	return words
 
 # ============================================================================ #
 
 
 def line2word(w: str) -> str:
 	"""
-	Convert a line from a text file into a word
+	Convert a line from a text file into a word.
 
-	Remove inline comments, then strip whitespace characters from both ends.
-	This is required, as reading a textfile includes trailing newline chars.
-	Then skip empty strings and words with non-printable chars.
+	1) remove inline comments
+	2) strip whitespace characters from both ends (this is required,
+	  as reading lines from a textfile includes trailing newline chars)
+	3) skip words with non-printable chars
+
 	No need to check w for existence on load, as it is always a string.
-	But after stripping newlines it may become empty.
+	After stripping newlines it may become empty.
 	Empty string is considered printable by str.isprintable().
 	"""
+
 	w = w.partition('#')[0].strip()
 	if w.isprintable():
 		return w
@@ -312,15 +394,16 @@ def line2word(w: str) -> str:
 
 def filter_words(words: set[str],
                  do_randomize: bool,
-                 minlen: int,
+                 minlength: int,
                  incl_capitalized: bool,
                  incl_phrases: bool) -> list[str]:
 	"""
 	Filter word set according to given arguments. Return a list of words.
 	"""
+
 	outwords = []
 	for w in words:
-		if (len(w) >= minlen) \
+		if (len(w) >= minlength) \
 		   and (incl_capitalized or w.islower()) \
 		   and (incl_phrases or (' ' not in w)):
 			outwords.append(w)
@@ -343,14 +426,19 @@ def write_outfile(outfile,
                   minfree: int,
                   uppercase: bool) -> int:
 	"""
-	Search for overlapping characters at the start & end of all words,
-	blend matching pairs, and write results into a text file.
+	Search for blendable words, blend applicable, write results to a file.
+
+	1) search for overlapping characters at the start & end of given words
+	2) blend matching pairs
+	3) dynamically write results into a text file
 
 	Dictionary is used to save the number of overlapping chars (as values)
 	and to auto-deduplicate saved words (as keys).
-	Note: we use w.casefold() for all string comparisons, but then
-	we blend original words for output.
+
+	w.casefold() is used for all string comparisons, but then original words
+	are actually blended for output.
 	"""
+
 	with outfile:
 
 		# Show progress bars and ETAs
@@ -398,7 +486,9 @@ def write_outfile(outfile,
 					(startpos, depth), _, _ = check_pair(tuple(words),
 					                                     mindepth,
 					                                     minfree)
+
 					if depth:
+
 						blend = blend_pair(tuple(words),
 						                   startpos,
 						                   depth,
@@ -414,6 +504,7 @@ def write_outfile(outfile,
 							# (print() auto-appends \n) or to sys.stdout
 							# TODO: argumentize output string format
 							# TODO: also save all data into cache
+							# (and check blend existence against it)
 							if outfile == sys.stdout:
 								tqdm.write(blend, outfile)
 							else:
@@ -445,17 +536,23 @@ def check_pair(ws: tuple[str, str],
 	"""
 	Check word pair for blendability.
 
-	Returns a tuple of:
+	Args:
+		ws: a pair of words to check
+
+	Returns:
+		a tuple of:
 		- tuple (startpos, depth)
 		- tuple (cfstartpos, cfdepth)
 		- tuple (w[0].casefold(), w[1].casefold())
-	Note: this algorithm uses casefold() string comparison, which, for some
+
+	This algorithm uses casefold() string comparison, which, for some
 	chars (like ß), changes word length (and, consequently, char indices).
 	Even more, for some languages unicodedata.normalize('NFKD', str)
 	might be needed. For now, we only address the first case,
 	trying to calculate proper startpos & depth.
 	https://stackoverflow.com/questions/319426/how-do-i-do-a-case-insensitive-string-comparison
 	"""
+
 	cfws = (ws[0].casefold(), ws[1].casefold())
 
 	for i in range(minfree, len(cfws[0]) - (mindepth-1)):
@@ -516,14 +613,16 @@ def blend_pair(ws: tuple[str, str],
                depth: int,
                uppercase: bool) -> str:
 	"""
-	Blend word pair.
+	Blend a pair of words.
 
-	Take 'startpos' non-overlapping chars from w[0],
-	add 'depth' overlapping chars (optionally UPPERCASE them),
-	then add remaining chars from w[1].
+	1) take 'startpos' non-overlapping chars from w[0]
+	2) add 'depth' overlapping chars (optionally UPPERCASE them)
+	3) add remaining chars from w[1]
+
 	Arbitrary decision: take overlapping chars from w[1]. If there are
 	differently uppercased/compound chars (like ß), result might look different.
 	"""
+
 	if uppercase:
 		blend = ''.join((ws[0][:startpos], ws[1][:depth].upper(), ws[1][depth:]))
 		# To use overlapping chars from ws[0] instead (maybe argumentize this):
