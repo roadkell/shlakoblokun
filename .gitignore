@@ -2,8 +2,8 @@
 *.profiling/
 *.build/
 *.dist/
-**/input.txt
-**/output.txt
+**/input*.txt
+**/output*.txt
 
 # gitignore template for VSCode
 
