@@ -54,7 +54,6 @@ import random
 import sys
 # from collections import namedtuple
 from io import TextIOWrapper    # for type annotation in files2words()
-from typing import Iterable
 
 from tqdm import tqdm
 
@@ -94,8 +93,8 @@ def main() -> int:
 	                       args.capitalized,
 	                       args.phrases))
 
-	# exwords = file2wset(pstr2pset(args.exclude_overlaps)
-	# print(exwords)
+	exwords = files2words(args.exclude_overlaps)
+	print(exwords)
 
 	if args.outfile != sys.stdout:
 		print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
@@ -113,8 +112,6 @@ def main() -> int:
 	                          args.uppercase)
 
 	# write_cache(cachepath, cachelist)
-
-	# print('Done.')
 
 	return 0
 
@@ -142,7 +139,6 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('-e', '--exclude-overlaps',
 	                    nargs='?',
 	                    type=argparse.FileType('r'),
-	                    # default=sys.stdout,
 	                    help="textfile with subwords that shouldn't be used as overlaps \
 	                    (usually common suffixes) (default: %(default)s)")
 	parser.add_argument('-o', '--outfile',
@@ -233,20 +229,8 @@ def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 		tuple: of 2 sets, for 1st and 2nd word to take words from
 	"""
 
-	# if pstrs[0] == sys.stdin:
-	# 	wsets = (file2wset(pstrs[0]), set(), set())
-
-	# else:
-	# 	psets = (set(), set(), set())    # (common, w1, w2)
-	# 	for (pset, pstr) in zip(psets, pstrs):
-
-	# 		if pstr:
-	# 			for path in pstr:
-	# 				# Again, typechecking is redundant, as path is always a str
-	# 				pset |= pstr2pset(path)
-
 	files = (infile, w1, w2)
-	wsets = (set(), set(), set())    # (common, w1, w2)
+	wsets = (set(), set(), set())
 	for (wset, file) in zip(wsets, files):
 		wset |= files2words(file)
 
@@ -267,9 +251,9 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 		- iterable (can be empty)
 		- None (but os.isdir() and fileinput.input() would throw errors)
 
-		Since nargs='*' always produce a list, except for when no arg is given,
-		infiles will always be either a list[str], or None, or
-		(in case of sys.stdin) io.TextIOWrapper.
+		Since nargs='*' always produce a list (except when no arg is given),
+		files from -i,-w1,-w2 options will always be either a list[str],
+		or None, or (in case of sys.stdin) io.TextIOWrapper.
 
 		If it is a directory, all files from it (excluding hidden and temporary)
 		will be read non-recursively. Multiple dirs can be given too.
@@ -278,19 +262,16 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 		status.
 
 	Returns:
-		set: of words from all files.
+		set: of words from all given files.
 	"""
+
+	print("type(infiles) == " + str(type(infiles)))
 
 	words = set()
 
 	if infiles:
 
-		#print("type(infiles) == " + str(type(infiles)))
-		# for infile in infiles:
-		#	print("type(infile) == " + str(type(infile)))
-
-		if infiles is sys.stdin:
-
+		if isinstance(infiles, TextIOWrapper):  # file object or sys.stdin
 			for w in infiles:
 				words.add(line2word(w))
 
@@ -300,8 +281,7 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 
 			outfiles = set()    # of type: str | os.DirEntry
 
-			if not isinstance(infiles, str) \
-			 and isinstance(infiles, Iterable):
+			if isinstance(infiles, list):
 
 				for file in infiles:
 					if file:
