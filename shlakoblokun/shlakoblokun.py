@@ -94,7 +94,9 @@ def main() -> int:
 	                       args.phrases))
 
 	exwords = files2words(args.exclude_overlaps)
-	print(exwords)
+	cfexwords = set()
+	for w in exwords:
+		cfexwords.add(w.casefold())
 
 	if args.outfile != sys.stdout:
 		print(len(wlists[0]) + len(wlists[1]), 'words loaded,',
@@ -104,6 +106,7 @@ def main() -> int:
 		print()
 
 	numblends = write_outfile(args.outfile,
+	                          cfexwords,
 	                          wlists,
 	                          # cachelist,
 	                          args.number,
@@ -265,15 +268,16 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 		set: of words from all given files.
 	"""
 
-	print("type(infiles) == " + str(type(infiles)))
+	# print("type(infiles) == " + str(type(infiles)))
 
 	words = set()
 
 	if infiles:
 
 		if isinstance(infiles, TextIOWrapper):  # file object or sys.stdin
-			for w in infiles:
-				words.add(line2word(w))
+			with infiles as f:
+				for w in f:
+					words.add(line2word(w))
 
 			return words
 
@@ -293,8 +297,9 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 			elif os.path.isdir(infiles):
 				outfiles = dir2files(infiles)
 
-			else:
-				outfiles = infiles
+			# else:
+			#	print("type(infiles) == " + str(type(infiles)))
+			#	outfiles = infiles
 
 			with fileinput.input(outfiles) as f:
 				for w in f:
@@ -318,9 +323,9 @@ def dir2files(dir: str) -> set[os.DirEntry]:
 	if dir:
 		with os.scandir(dir) as it:
 			for entry in it:
-				if not entry.name.startswith('.') \
-				and not entry.name.endswith('~') \
-				and entry.is_file():
+				if entry.is_file() \
+				   and not entry.name.startswith('.') \
+				   and not entry.name.endswith('~'):
 					files.add(entry)
 
 	return files
@@ -399,6 +404,7 @@ def filter_words(words: set[str],
 
 
 def write_outfile(outfile,
+                  cfexwords,
                   wlists: tuple[list[str], list[str]],
                   # cachelist,
                   maxblends: int,
@@ -406,7 +412,7 @@ def write_outfile(outfile,
                   minfree: int,
                   uppercase: bool) -> int:
 	"""
-	Search for blendable words, blend applicable, write results to a file.
+	Search for blendable words, do the blending, write results to a file.
 
 	1) search for overlapping characters at the start & end of given words
 	2) blend matching pairs
@@ -464,6 +470,7 @@ def write_outfile(outfile,
 				                     colour='green'):
 
 					(startpos, depth), _, _ = check_pair(tuple(words),
+					                                     cfexwords,
 					                                     mindepth,
 					                                     minfree)
 
@@ -509,6 +516,7 @@ def write_outfile(outfile,
 
 
 def check_pair(ws: tuple[str, str],
+               cfexwords: set,
                mindepth: int,
                minfree: int) -> tuple[tuple[int, int],
                                       tuple[int, int],
@@ -537,7 +545,8 @@ def check_pair(ws: tuple[str, str],
 
 	for i in range(minfree, len(cfws[0]) - (mindepth-1)):
 
-		if cfws[1].startswith(cfws[0][i:], 0, len(cfws[1]) - minfree):
+		if cfws[1].startswith(cfws[0][i:], 0, len(cfws[1]) - minfree) \
+		   and cfws[0][i:] not in cfexwords:
 			# Match!
 			cfstartpos = i
 			cfdepth = len(cfws[0][i:])
