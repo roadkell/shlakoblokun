@@ -53,7 +53,8 @@ import os
 import random
 import sys
 # from collections import namedtuple
-from io import TextIOWrapper    # for type annotation in files2words()
+from io import TextIOWrapper
+from typing import Union
 
 from tqdm import tqdm
 
@@ -233,7 +234,7 @@ def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 	"""
 
 	files = (infile, w1, w2)
-	wsets = (set(), set(), set())
+	wsets: tuple[set[str], set[str], set[str]] = (set(), set(), set())
 	for (wset, file) in zip(wsets, files):
 		wset |= files2words(file)
 
@@ -243,7 +244,7 @@ def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 # ============================================================================ #
 
 
-def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
+def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]:
 	"""
 	Read lines from vocabulary file[s] or sys.stdin into a set.
 
@@ -257,6 +258,7 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 		Since nargs='*' always produce a list (except when no arg is given),
 		files from -i,-w1,-w2 options will always be either a list[str],
 		or None, or (in case of sys.stdin) io.TextIOWrapper.
+		File from -e option will produce a str.
 
 		If it is a directory, all files from it (excluding hidden and temporary)
 		will be read non-recursively. Multiple dirs can be given too.
@@ -283,7 +285,7 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 
 		else:
 
-			outfiles = set()    # of type: str | os.DirEntry
+			outfiles: set[str] = set()
 
 			if isinstance(infiles, list):
 
@@ -313,7 +315,7 @@ def files2words(infiles: list[str] | TextIOWrapper | None) -> set[str]:
 # ============================================================================ #
 
 
-def dir2files(dir: str) -> set[os.DirEntry]:
+def dir2files(dir: str) -> set[str]:
 	"""
 	List all files in a directory, excluding hidden and temporary (POSIX-like).
 	"""
@@ -326,7 +328,7 @@ def dir2files(dir: str) -> set[os.DirEntry]:
 				if entry.is_file() \
 				   and not entry.name.startswith('.') \
 				   and not entry.name.endswith('~'):
-					files.add(entry)
+					files.add(entry.path)
 
 	return files
 
@@ -381,7 +383,8 @@ def filter_words(words: set[str],
                  do_randomize: bool,
                  minlength: int,
                  incl_capitalized: bool,
-                 incl_phrases: bool) -> list[str]:
+                 incl_phrases: bool
+                 ) -> list[str]:
 	"""
 	Filter word set according to given arguments. Return a list of words.
 	"""
@@ -410,7 +413,8 @@ def write_outfile(outfile,
                   maxblends: int,
                   mindepth: int,
                   minfree: int,
-                  uppercase: bool) -> int:
+                  uppercase: bool
+                  ) -> int:
 	"""
 	Search for blendable words, do the blending, write results to a file.
 
@@ -469,14 +473,14 @@ def write_outfile(outfile,
 				                     desc='Current word vs. whole vocabulary',
 				                     colour='green'):
 
-					(startpos, depth), _, _ = check_pair(tuple(words),
+					(startpos, depth), _, _ = check_pair((words[0], words[1]),
 					                                     cfexwords,
 					                                     mindepth,
 					                                     minfree)
 
 					if depth:
 
-						blend = blend_pair(tuple(words),
+						blend = blend_pair((words[0], words[1]),
 						                   startpos,
 						                   depth,
 						                   uppercase)
@@ -518,9 +522,10 @@ def write_outfile(outfile,
 def check_pair(ws: tuple[str, str],
                cfexwords: set,
                mindepth: int,
-               minfree: int) -> tuple[tuple[int, int],
-                                      tuple[int, int],
-                                      tuple[str, str]]:
+               minfree: int
+               ) -> tuple[tuple[int, int],
+                    tuple[int, int],
+                    tuple[str, str]]:
 	"""
 	Check word pair for blendability.
 
@@ -590,7 +595,7 @@ def check_pair(ws: tuple[str, str],
 			# After a match is found, exit for loop (this pair is done)
 			return ((startpos, depth),
 			        (cfstartpos, cfdepth),
-			        tuple(cfws))
+			        cfws)
 
 	return ((0, 0), (0, 0), ('', ''))
 
@@ -600,7 +605,8 @@ def check_pair(ws: tuple[str, str],
 def blend_pair(ws: tuple[str, str],
                startpos: int,
                depth: int,
-               uppercase: bool) -> str:
+               uppercase: bool
+               ) -> str:
 	"""
 	Blend a pair of words.
 
