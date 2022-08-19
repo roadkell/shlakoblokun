@@ -41,8 +41,6 @@ TODO: implement caching
 TODO: unspaghettize code
 TODO: add -1or2, -1xor2 options for vocabularies
 TODO: maybe replace argparse with click
-TODO: add a denylist file of common suffixes for each language ('-ий', '-ть'),
-to ignore blends generated upon them
 """
 
 # ============================================================================ #
@@ -127,6 +125,7 @@ def parse_args() -> argparse.Namespace:
 	Parse command line arguments. Print help when invoked without args.
 
 	Infile can be one or many files, one or many dirs, or sys.stdin (default).
+	If no infile[s] | sys.stdin are specified, throw an error.
 	"""
 	parser = argparse.ArgumentParser(prog='python3 shlakoblokun.py')
 
@@ -228,7 +227,6 @@ def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 
 	Args:
 		values of -i, -w1, -w2 options (some can be None)
-
 	Returns:
 		tuple: of 2 sets, for 1st and 2nd word to take words from
 	"""
@@ -258,7 +256,7 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 		Since nargs='*' always produce a list (except when no arg is given),
 		files from -i,-w1,-w2 options will always be either a list[str],
 		or None, or (in case of sys.stdin) io.TextIOWrapper.
-		File from -e option will produce a str.
+		File from -e option will produce a str, due to nargs='?'.
 
 		If it is a directory, all files from it (excluding hidden and temporary)
 		will be read non-recursively. Multiple dirs can be given too.
@@ -269,8 +267,6 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 	Returns:
 		set: of words from all given files.
 	"""
-
-	# print("type(infiles) == " + str(type(infiles)))
 
 	words = set()
 
@@ -299,10 +295,6 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 			elif os.path.isdir(infiles):
 				outfiles = dir2files(infiles)
 
-			# else:
-			#	print("type(infiles) == " + str(type(infiles)))
-			#	outfiles = infiles
-
 			with fileinput.input(outfiles) as f:
 				for w in f:
 					words.add(line2word(w))
@@ -317,7 +309,7 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 
 def dir2files(dir: str) -> set[str]:
 	"""
-	List all files in a directory, excluding hidden and temporary (POSIX-like).
+	List all files in a directory, excluding hidden and temporary (POSIX-style).
 	"""
 
 	files = set()
@@ -335,35 +327,14 @@ def dir2files(dir: str) -> set[str]:
 # ============================================================================ #
 
 
-# def file2wset(file) -> set[str]:
-# 	"""
-# 	Import words from a single vocabulary file or sys.stdin into a set.
-
-# 	type(file): TextIOWrapper (when sys.stdin) or Path (when -i path)
-# 	"""
-# 	words = set()
-# 	if file:
-# 		if file == sys.stdin:
-# 			for w in file:
-# 				words.add(line2word(w))
-# 		else:
-# 			with file.open() as f:
-# 				for w in f:
-# 					words.add(line2word(w))
-
-# 	return words
-
-# ============================================================================ #
-
-
 def line2word(w: str) -> str:
 	"""
 	Convert a line from a text file into a word.
 
-	1) remove inline comments
+	1) remove inline comments;
 	2) strip whitespace characters from both ends (this is required,
-	  as reading lines from a textfile includes trailing newline chars)
-	3) skip words with non-printable chars
+	  as reading lines from a textfile includes trailing newline chars);
+	3) skip words with non-printable chars;
 
 	No need to check w for existence on load, as it is always a string.
 	After stripping newlines it may become empty.
@@ -418,9 +389,9 @@ def write_outfile(outfile,
 	"""
 	Search for blendable words, do the blending, write results to a file.
 
-	1) search for overlapping characters at the start & end of given words
-	2) blend matching pairs
-	3) dynamically write results into a text file
+	1) search for overlapping characters at the start & end of given words;
+	2) blend matching pairs;
+	3) dynamically write results into a text file;
 
 	Dictionary is used to save the number of overlapping chars (as values)
 	and to auto-deduplicate saved words (as keys).
@@ -454,7 +425,6 @@ def write_outfile(outfile,
 		              colour='green')
 
 		inwords = set(wlists[0] + wlists[1])
-		# blends = dict()
 		blends = set()
 		blend_ctr = 0
 		w_ctr = 0
@@ -610,9 +580,9 @@ def blend_pair(ws: tuple[str, str],
 	"""
 	Blend a pair of words.
 
-	1) take 'startpos' non-overlapping chars from w[0]
-	2) add 'depth' overlapping chars (optionally UPPERCASE them)
-	3) add remaining chars from w[1]
+	1) take 'startpos' non-overlapping chars from w[0];
+	2) add 'depth' overlapping chars (optionally UPPERCASE them);
+	3) add remaining chars from w[1];
 
 	Arbitrary decision: take overlapping chars from w[1]. If there are
 	differently uppercased/compound chars (like ß), result might look different.
