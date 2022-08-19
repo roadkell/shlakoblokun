@@ -19,8 +19,8 @@ on:
     branches: ['main']
     paths:
       - '**.py'
-  schedule:
-    - cron: $cron-weekly
+  # schedule:
+  #   - cron: $cron-weekly
   workflow_dispatch:
 
 jobs:
