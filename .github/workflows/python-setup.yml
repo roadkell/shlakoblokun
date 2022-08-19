@@ -1,37 +1,32 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see:
+# https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 # https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 # https://github.com/actions/setup-python
 
-name: "Python Setup and Test"
+name: "Python Setup"
 
 on:
   push:
     branches: ['main']
-    paths:
-      - '**.py'
-    # paths-ignore:
-    #   - '**/*.txt'
-    #   - '**/*.md'
   pull_request:
     branches: ['main']
     paths:
       - '**.py'
-    # paths-ignore:
-    #   - '**/*.txt'
-    #   - '**/*.md'
   workflow_dispatch:
 
 jobs:
   build:
-
+    name: Build
     runs-on: ubuntu-latest
     strategy:
-      # fail-fast: false
       matrix:
         python-version: ["3.x"]
 
     steps:
-      - name: List env vars
-        run: env
+
+      # - name: List env vars
+      #   run: env
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -66,20 +61,24 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip  # setuptools wheel
-          pip install flake8 flake8-tabs pytest
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Set the `CODEQL-PYTHON` environment variable to the Python executable
+          # that includes the dependencies
+          echo "CODEQL_PYTHON=$(which python)" >> $GITHUB_ENV
 
-      - name: Show flake8 help
-        run: flake8 --help
+      # - name: Show flake8 help
+      #   run: flake8 --help
 
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --use-flake8-tabs --extend-ignore=E223,E501 --count
+          flake8 . --ignore=E101,E223,E274,E501,W191 --count
           --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        continue-on-error: true
 
       # - name: Test with pytest
       #   run: |
