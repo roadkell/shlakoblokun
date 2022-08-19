@@ -12,13 +12,17 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: ['main']
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: ['main']
-    paths:
-      - '**.py'
+  workflow_run:
+    workflows: [Python Setup]
+    types: [completed]
+    branches: [main]
+  # push:
+  #   branches: ['main']
+  # pull_request:
+  #   # The branches below must be a subset of the branches above
+  #   branches: ['main']
+  #   paths:
+  #     - '**.py'
   # schedule:
   #   - cron: $cron-weekly
   workflow_dispatch:
@@ -27,6 +31,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       actions: read
       contents: read
