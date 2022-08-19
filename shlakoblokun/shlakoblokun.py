@@ -494,8 +494,8 @@ def check_pair(ws: tuple[str, str],
                mindepth: int,
                minfree: int
                ) -> tuple[tuple[int, int],
-                    tuple[int, int],
-                    tuple[str, str]]:
+                          tuple[int, int],
+                          tuple[str, str]]:
 	"""
 	Check word pair for blendability.
 
