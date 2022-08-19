@@ -14,18 +14,13 @@ name: "CodeQL"
 on:
   push:
     branches: ['main']
-    paths:
-      - '**.py'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: ['main']
     paths:
       - '**.py'
-    # paths-ignore:
-    #   - '**/*.txt'
-    #   - '**/*.md'
-  # schedule:
-  #   - cron: '22 19 * * 4'
+  schedule:
+    - cron: $cron-weekly
   workflow_dispatch:
 
 jobs:
@@ -52,7 +47,12 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
-        languages: ${{ matrix.language }}
+        languages: python
+
+        # Override the default behavior so that the action doesn't attempt
+        # to auto-install Python dependencies
+        setup-python-dependencies: false
+
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
@@ -78,7 +78,3 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
-
-# paths-ignore:
-  # - '**/data/'
-  # - '**/*.txt'
