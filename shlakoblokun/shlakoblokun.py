@@ -163,7 +163,8 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('-f', '--minfree',
 	                    type=int,
 	                    default=1,
-	                    help='minimum number of non-overlapping chars in each word (default: %(default)s)')
+	                    help='minimum number of non-overlapping chars in each word \
+	                    (default: %(default)s)')
 	parser.add_argument('-l', '--minlength',
 	                    type=int,
 	                    default=3,
@@ -174,7 +175,8 @@ def parse_args() -> argparse.Namespace:
 	                    help='maximum length of source words (default: unlimited)')
 	parser.add_argument('-u', '--uppercase',
 	                    action='store_true',
-	                    help='uppercase overlapping characters in the output ("reVENGEance")')
+	                    help='uppercase overlapping characters in the output \
+	                    (ex., "reVENGEance")')
 	parser.add_argument('-c', '--capitalized',
 	                    action='store_true',
 	                    help='also include capitalized words (proper names / abbreviations)')
@@ -183,7 +185,7 @@ def parse_args() -> argparse.Namespace:
 	                    help='also include multi-word phrases')
 
 	args = parser.parse_args(args=None if (sys.argv[1:] or not sys.stdin.isatty())
-	                                   else ['--help'])
+	                         else ['--help'])
 
 	if not (args.infile or args.w1 and args.w2):
 		parser.error('no source vocabularies specified')
