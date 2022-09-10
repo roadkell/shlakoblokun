@@ -6,7 +6,6 @@ Each word is checked for overlapping characters against every other word.
 It is considered a match when at least some chars are overlapping.
 Example: "revenge" and "vengeance" have 5 overlapping chars,
 so "reVENGEance" will be generated from this pair.
-Both words must have some non-overlapping chars at the start/end.
 
 Arbitrary decision:
 	When a blend is generated, we take overlapping chars from the second word.
@@ -16,21 +15,21 @@ Arbitrary decision:
 
 Naming conventions:
 	...s    - suffix for plurals (sequence types)
-	...ss   - suffix for 'sequence of 'sequence'' (2-dimensional)
+	...ss   - suffix for 'sequence of sequence' (2-dimensional seq.)
 	w       - word (ws - words)
-	w...    - prefix for word
+	w...    - prefix for 'word'
 	cfw     - casefolded word
-	cf...   - prefix for casefolded
+	cf...   - prefix for 'casefolded'
 	ch      - character (chs - characters)
 	f       - file (fs - files)
 	p       - path (ps - paths)
 
 It might be slightly confusing with multidimensional stuff, for example:
 	wlist   - list of word (i.e. a sequence itself, could also be named 'ws');
-	wlists  - sequence of wlist (i.e. a sequence of 'list of 'word'',
+	wlists  - sequence of wlist (i.e. a sequence of list of word,
 	          a 2-dimensional sequence, could also be named 'wss');
 	          and since word is a str (a sequence itself), its chars may be
-	          addressed as 'chsss' (3-dimensional sequence);
+	          addressed as 'chsss' (3-dimensional seq.),
 	          but we don't go that deep, thankfully. =)
 
 Arg names and README address words as w1 & w2, but codewise
@@ -38,7 +37,6 @@ they are zero-indexed (w[0], w[1]).
 
 TODO: separate logic from presentation
 TODO: implement caching
-TODO: unspaghettize code
 TODO: add -1or2, -1xor2 options for vocabularies
 TODO: maybe replace argparse with click
 """
@@ -52,7 +50,7 @@ import random
 import sys
 # from collections import namedtuple
 from io import TextIOWrapper
-from typing import Union
+# from typing import Union
 
 from tqdm import tqdm
 
@@ -142,7 +140,7 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('-e', '--exclude-overlaps',
 	                    nargs='?',
 	                    type=argparse.FileType('r'),
-	                    help="textfile with subwords that shouldn't be used as overlaps \
+	                    help="vocabulary file with overlaps to ignore \
 	                    (usually common suffixes) (default: %(default)s)")
 	parser.add_argument('-o', '--outfile',
 	                    nargs='?',
@@ -179,7 +177,7 @@ def parse_args() -> argparse.Namespace:
 	                    (ex., "reVENGEance")')
 	parser.add_argument('-c', '--capitalized',
 	                    action='store_true',
-	                    help='also include capitalized words (proper names / abbreviations)')
+	                    help='also include capitalized words')
 	parser.add_argument('-p', '--phrases',
 	                    action='store_true',
 	                    help='also include multi-word phrases')
@@ -244,16 +242,12 @@ def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 # ============================================================================ #
 
 
-def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]:
+def files2words(infiles: str | list[str] | TextIOWrapper | None) -> set[str]:
 	"""
 	Read lines from vocabulary file[s] or sys.stdin into a set.
 
 	Args:
-		infiles: can be anything fileinput.input() accepts:
-		- str
-		- os.PathLike
-		- iterable (can be empty)
-		- None (but os.isdir() and fileinput.input() would throw errors)
+		infiles:
 
 		Since nargs='*' always produce a list (except when no arg is given),
 		files from -i,-w1,-w2 options will always be either a list[str],
@@ -263,8 +257,8 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 		If it is a directory, all files from it (excluding hidden and temporary)
 		will be read non-recursively. Multiple dirs can be given too.
 
-		If multiple files are given, they'll be read, regardless of hidden/temp
-		status.
+		If multiple files are given explicitly, they'll be read, regardless
+		of hidden/temp status.
 
 	Returns:
 		set: of words from all given files.
@@ -275,6 +269,7 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 	if infiles:
 
 		if isinstance(infiles, TextIOWrapper):  # file object or sys.stdin
+
 			with infiles as f:
 				for w in f:
 					words.add(line2word(w))
@@ -286,14 +281,12 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 			outfiles: set[str] = set()
 
 			if isinstance(infiles, list):
-
 				for file in infiles:
 					if file:
 						if os.path.isdir(file):
 							outfiles |= dir2files(file)
 						else:
 							outfiles.add(file)
-
 			elif os.path.isdir(infiles):
 				outfiles = dir2files(infiles)
 
@@ -304,6 +297,7 @@ def files2words(infiles: Union[str, list[str], TextIOWrapper, None]) -> set[str]
 			return words
 
 	else:
+
 		return words
 
 # ============================================================================ #
@@ -503,6 +497,7 @@ def check_pair(ws: tuple[str, str],
 
 	Args:
 		ws: a pair of words to check
+		cfexwords: overlaps to ignore (from -e option)
 
 	Returns:
 		a tuple of:
