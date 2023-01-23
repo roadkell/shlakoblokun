@@ -76,7 +76,7 @@ cat input.txt | python3 shlakoblokun.py
 python3 shlakoblokun.py < input.txt > output.txt
 ```
 
-Словари извлечены из [дампа ру-Викисловаря](https://dumps.wikimedia.org/) с помощью [wiktiny](https://github.com/roadkell/wiktiny).
+Словари извлечены из [дампа ру-Викисловаря](https://dumps.wikimedia.org/) с помощью [wiktion](https://github.com/roadkell/wiktion).
 
 ### Важное ###
 
