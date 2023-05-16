@@ -80,11 +80,11 @@ python3 shlakoblokun.py < input.txt > output.txt
 
 ### Важное ###
 
-[Квiр Свiт](https://www.instagram.com/queer_svit/) — организация, которая помогает ЛГБТК+ людям и представителям коренных народов/этнических меньшинств, пострадавшим от войны в Украине, и тем, чьим жизням угрожает растущий авторитаризм в России и Беларуси. Мы — группа волонтеров, предоставляющих финансовую помощь, жилье и транспорт нуждающимся ЛГБТК+, а также рекомендации и связи с дополнительными ресурсами.
-Каждый донат важен, и мы всегда благодарны людям, которые распространяют информацию о нашем деле.
+[Квiр Свiт](https://queersvit.taplink.ws/) — организация, которая помогает квир- и небелым людям, пострадавшим от войны в Украине, и тем, чьим жизням угрожает растущий авторитаризм в России и Беларуси. Мы — группа волонтеров, предоставляющих финансовую помощь, жилье и транспорт нуждающимся ЛГБТК+ и небелым людям, а также рекомендации и связи с дополнительными ресурсами.
+Каждый донат важен, и мы всегда благодарны людям, которые распространяют информацию о нашем деле. Спасибо!
 
-[Queer Svit](https://www.instagram.com/queer_svit/) is an organization that helps LGBTQ+ and BIPOC people impacted by the war in Ukraine, and those whose lives are threated by rising authoritarianism in Russia and Belarus. We are a group of volunteers, providing financial assistance, housing, and transportation to LGBTQ+ people in need, along with guidance and connections to further resources.
-Any donation helps, and we are always grateful to people who spread the word about our cause.
+[Queer Svit](https://queersvit.taplink.ws/) is an organization that helps queer and BAME people impacted by the war in Ukraine, and those whose lives are threated by rising authoritarianism in Russia and Belarus. We are a group of volunteers, providing financial assistance, housing, and transportation to LGBTQ+ and BAME people in need, along with guidance and connections to further resources.
+Any donation helps, and we are always grateful to people who spread the word about our cause. Thank you!
 
 ### Лицензия ###
 
