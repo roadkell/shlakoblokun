@@ -87,7 +87,7 @@ Any donation helps, and we are always grateful to people who spread the word abo
 
 ### Лицензия ###
 
-[Hippocratic License 3.0](https://firstdonoharm.dev/version/3/0/core.html)
+[Hippocratic License 3.0](https://github.com/roadkell/shlakoblokun/blob/main/LICENSE.md)
 
 [Викисловарь](https://ru.wiktionary.org/): [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
 
