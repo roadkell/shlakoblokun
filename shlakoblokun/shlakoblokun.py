@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Generate hilarious (or not) portmanteaus from a vocabulary.
+Generate hilarious (or not) portmanteaus from a vocabulary
+https://github.com/roadkell/shlakoblokun
 
 Each word is checked for overlapping characters against every other word.
 It is considered a match when at least some chars are overlapping.
@@ -25,10 +26,10 @@ Naming conventions:
 	p       - path (ps - paths)
 
 It might be slightly confusing with multidimensional stuff, for example:
-	wlist   - list of word (i.e. a sequence itself, could also be named 'ws');
-	wlists  - sequence of wlist (i.e. a sequence of list of word,
+	wlist   - list of 'word's (i.e. a sequence itself, could also be named 'ws');
+	wlists  - sequence of 'wlist's (i.e. a sequence of list of word,
 	          a 2-dimensional sequence, could also be named 'wss');
-	          and since word is a str (a sequence itself), its chars may be
+	          and since word is a 'str' (a sequence itself), its chars may be
 	          addressed as 'chsss' (3-dimensional seq.),
 	          but we don't go that deep, thankfully. =)
 
@@ -120,7 +121,7 @@ def main() -> int:
 
 def parse_args() -> argparse.Namespace:
 	"""
-	Parse command line arguments. Print help when invoked without args.
+	Parse command line arguments. Print help when invoked without args
 
 	Infile can be one or many files, one or many dirs, or sys.stdin (default).
 	If no infile[s] | sys.stdin are specified, throw an error.
@@ -223,7 +224,7 @@ def parse_args() -> argparse.Namespace:
 
 def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 	"""
-	Read vocabulary file[s], return sets of words to blend.
+	Read vocabulary file[s], return sets of words to blend
 
 	Args:
 		values of -i, -w1, -w2 options (some can be None)
@@ -244,7 +245,7 @@ def read_infiles(infile, w1, w2) -> tuple[set[str], set[str]]:
 
 def files2words(infiles: str | list[str] | TextIOWrapper | None) -> set[str]:
 	"""
-	Read lines from vocabulary file[s] or sys.stdin into a set.
+	Read lines from vocabulary file[s] or sys.stdin into a set
 
 	Args:
 		infiles:
@@ -305,7 +306,7 @@ def files2words(infiles: str | list[str] | TextIOWrapper | None) -> set[str]:
 
 def dir2files(dir: str) -> set[str]:
 	"""
-	List all files in a directory, excluding hidden and temporary (POSIX-style).
+	List all files in a directory, excluding hidden and temporary (POSIX-style)
 	"""
 
 	files = set()
@@ -325,7 +326,7 @@ def dir2files(dir: str) -> set[str]:
 
 def line2word(w: str) -> str:
 	"""
-	Convert a line from a text file into a word.
+	Convert a line from a text file into a word
 
 	1) remove inline comments;
 	2) strip whitespace characters from both ends (this is required,
@@ -353,7 +354,7 @@ def filter_words(words: set[str],
                  incl_phrases: bool
                  ) -> list[str]:
 	"""
-	Filter word set according to given arguments. Return a list of words.
+	Filter word set according to given arguments. Return a list of words
 	"""
 
 	outwords = []
@@ -383,7 +384,7 @@ def write_outfile(outfile,
                   uppercase: bool
                   ) -> int:
 	"""
-	Search for blendable words, do the blending, write results to a file.
+	Search for blendable words, do the blending, write results to a file
 
 	1) search for overlapping characters at the start & end of given words;
 	2) blend matching pairs;
@@ -493,7 +494,7 @@ def check_pair(ws: tuple[str, str],
                           tuple[int, int],
                           tuple[str, str]]:
 	"""
-	Check word pair for blendability.
+	Check word pair for blendability
 
 	Args:
 		ws: a pair of words to check
@@ -575,7 +576,7 @@ def blend_pair(ws: tuple[str, str],
                uppercase: bool
                ) -> str:
 	"""
-	Blend a pair of words.
+	Blend a pair of words
 
 	1) take 'startpos' non-overlapping chars from w[0];
 	2) add 'depth' overlapping chars (optionally UPPERCASE them);
