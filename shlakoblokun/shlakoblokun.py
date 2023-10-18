@@ -90,16 +90,13 @@ def main() -> int:
 			args.randomize,
 			args.minlength,
 			args.capitalized,
-			args.phrases
-		),
+			args.phrases),
 		filter_words(
 			wsets[1],
 			args.randomize,
 			args.minlength,
 			args.capitalized,
-			args.phrases
-		)
-	)
+			args.phrases))
 
 	exwords = files2words(args.exclude_overlaps)
 	cfexwords = set()
@@ -109,8 +106,7 @@ def main() -> int:
 	if args.outfile != sys.stdout:
 		print(
 			len(wlists[0]) + len(wlists[1]), 'words loaded,',
-			len(wlists[0]) * len(wlists[1]), 'pairs to check'
-		)
+			len(wlists[0]) * len(wlists[1]), 'pairs to check')
 		print('Starting search for overlapping substrings in word pairs')
 		print('Press Ctrl-C to quit anytime')
 		print()
@@ -123,8 +119,7 @@ def main() -> int:
 		args.number,
 		args.depth,
 		args.minfree,
-		args.uppercase
-	)
+		args.uppercase)
 
 	# write_cache(cachepath, cachelist)
 
@@ -146,93 +141,78 @@ def parse_args() -> argparse.Namespace:
 		'-i', '--infile',
 		nargs='*',
 		default=(None if sys.stdin.isatty() else sys.stdin),
-		help='source vocabulary file[s] or dir (default: stdin)'
-	)
+		help='source vocabulary file[s] or dir (default: stdin)')
 	parser.add_argument(
 		'-a',
 		nargs='*',
 		metavar='WORDS_A',
-		help='vocabulary file[s]/dir to only source 1st words from'
-	)
+		help='vocabulary file[s]/dir to only source 1st words from')
 	parser.add_argument(
 		'-b',
 		nargs='*',
 		metavar='WORDS_B',
-		help='vocabulary file[s]/dir to only source 2nd words from'
-	)
+		help='vocabulary file[s]/dir to only source 2nd words from')
 	parser.add_argument(
 		'-e', '--exclude-overlaps',
 		nargs='?',
 		metavar='OVERLAPS',
 		type=argparse.FileType('r'),
 		help="vocabulary file with overlaps to ignore \
-		(usually common suffixes) (default: %(default)s)"
-	)
+		(usually common suffixes) (default: %(default)s)")
 	parser.add_argument(
 		'-o', '--outfile',
 		nargs='?',
 		type=argparse.FileType('w'),
 		default=sys.stdout,
-		help='output file (default: stdout)'
-	)
+		help='output file (default: stdout)')
 	parser.add_argument(
 		'-r', '--randomize',
 		action='store_true',
-		help='shuffle vocabulary, instead of going alphabetically'
-	)
+		help='shuffle vocabulary, instead of going alphabetically')
 	parser.add_argument(
 		'-n', '--number',
 		type=int,
 		default=0,
-		help='number of word blends to generate (default: unlimited)'
-	)
+		help='number of word blends to generate (default: unlimited)')
 	parser.add_argument(
 		'-d', '--depth',
 		type=int,
 		default=2,
-		help='minimum depth of blending (default: %(default)s)'
-	)
+		help='minimum depth of blending (default: %(default)s)')
 	parser.add_argument(
 		'-f', '--minfree',
 		type=int,
 		default=1,
 		help='minimum number of non-overlapping chars in each word \
-		(default: %(default)s)'
-	)
+		(default: %(default)s)')
 	parser.add_argument(
 		'-l', '--minlength',
 		metavar='LENGTH',
 		type=int,
 		default=3,
-		help='minimum length of source words (default: %(default)s)'
-	)
+		help='minimum length of source words (default: %(default)s)')
 	parser.add_argument(
 		'-L', '--maxlength',
 		metavar='LENGTH',
 		type=int,
 		default=0,
-		help='maximum length of source words (default: unlimited)'
-	)
+		help='maximum length of source words (default: unlimited)')
 	parser.add_argument(
 		'-u', '--uppercase',
 		action='store_true',
-		help='uppercase overlapping characters in the output (ex., "reVENGEance")'
-	)
+		help='uppercase overlapping characters in the output (ex., "reVENGEance")')
 	parser.add_argument(
 		'-c', '--capitalized',
 		action='store_true',
-		help='also include capitalized words'
-	)
+		help='also include capitalized words')
 	parser.add_argument(
 		'-p', '--phrases',
 		action='store_true',
-		help='also include multi-word phrases'
-	)
+		help='also include multi-word phrases')
 
 	args = parser.parse_args(
 		args=None if (sys.argv[1:] or not sys.stdin.isatty())
-		else ['--help']
-	)
+		else ['--help'])
 
 	if not (args.infile or args.a and args.b):
 		parser.error('no source vocabularies specified')
@@ -288,8 +268,7 @@ def read_infiles(infile, a, b) -> tuple[set[str], set[str]]:
 
 	return (
 		(wsets[0] | wsets[1]),
-		(wsets[0] | wsets[2])
-	)
+		(wsets[0] | wsets[2]))
 
 # ============================================================================ #
 
@@ -411,11 +390,9 @@ def filter_words(
 
 	outwords = []
 	for w in words:
-		if (
-			(len(w) >= minlength)
+		if ((len(w) >= minlength)
 			and (incl_capitalized or w.islower())
-			and (incl_phrases or (' ' not in w))
-		):
+			and (incl_phrases or (' ' not in w))):
 			outwords.append(w)
 
 	if do_randomize:
@@ -462,16 +439,14 @@ def write_outfile(
 				dynamic_ncols=True,
 				unit='w',
 				desc='Word blends generated',
-				colour='green'
-			)
+				colour='green')
 		else:
 			blend_pbar = tqdm(
 				smoothing=0.01,
 				dynamic_ncols=True,
 				unit='w',
 				desc='Word blends generated',
-				colour='green'
-			)
+				colour='green')
 
 		w_pbar = tqdm(
 			wlists[0],
@@ -479,8 +454,7 @@ def write_outfile(
 			dynamic_ncols=True,
 			unit='w',
 			desc='First words processed',
-			colour='green'
-		)
+			colour='green')
 
 		inwords = set(wlists[0] + wlists[1])
 		blends = set()
@@ -500,15 +474,13 @@ def write_outfile(
 					dynamic_ncols=True,
 					unit='w',
 					desc='Current word vs. whole vocabulary',
-					colour='green'
-				):
+					colour='green'):
 
 					(startpos, depth), _, _ = check_pair(
 						(words[0], words[1]),
 						cfexwords,
 						mindepth,
-						minfree
-					)
+						minfree)
 
 					if depth:
 
@@ -516,14 +488,11 @@ def write_outfile(
 							(words[0], words[1]),
 							startpos,
 							depth,
-							uppercase
-						)
+							uppercase)
 						# An ugly way of checking if blend exists in inword set
-						if (
-							(blend not in inwords)
+						if ((blend not in inwords)
 							and (blend.lower() not in inwords)
-							and (blend not in blends)
-						):
+							and (blend not in blends)):
 							blends.add(blend)
 							# blends[blend] = depth
 							# Dynamically write blended word into plaintext file
@@ -562,8 +531,7 @@ def check_pair(
 ) -> tuple[
 	tuple[int, int],
 	tuple[int, int],
-	tuple[str, str]
-]:
+	tuple[str, str]]:
 	"""
 	Check word pair for blendability.
 
@@ -589,10 +557,8 @@ def check_pair(
 
 	for i in range(minfree, len(cfws[0]) - (mindepth-1)):
 
-		if (
-			cfws[1].startswith(cfws[0][i:], 0, len(cfws[1]) - minfree)
-			and cfws[0][i:] not in cfexwords
-		):
+		if (cfws[1].startswith(cfws[0][i:], 0, len(cfws[1]) - minfree)
+			and cfws[0][i:] not in cfexwords):
 			# Match!
 			cfstartpos = i
 			cfdepth = len(cfws[0][i:])
@@ -637,8 +603,7 @@ def check_pair(
 			return (
 				(startpos, depth),
 				(cfstartpos, cfdepth),
-				cfws
-			)
+				cfws)
 
 	return ((0, 0), (0, 0), ('', ''))
 
